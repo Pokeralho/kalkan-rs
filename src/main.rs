@@ -77,6 +77,7 @@ USO:
                                   renderiza o tema em PNG sem usar o hardware
   kalkan-rs --record <tema> <saida.gif> [segundos]
                                   grava a animação do tema em GIF (pasta ou nome)
+  kalkan-rs --autostart on|off    inicia (ou não) junto com o Windows
   kalkan-rs --list-themes         lista os temas disponíveis
   kalkan-rs --verbose             log detalhado (kalkan-rs.log)
 ";
@@ -87,6 +88,7 @@ struct Args {
     no_tray: bool,
     preview: Option<(Option<String>, Option<PathBuf>)>,
     record: Option<(String, PathBuf, f32)>,
+    autostart: Option<bool>,
     list: bool,
     verbose: bool,
 }
@@ -110,6 +112,16 @@ fn parse_args() -> Args {
                 }
                 let mut pos = pos.into_iter();
                 a.preview = Some((pos.next(), pos.next().map(PathBuf::from)));
+            }
+            "--autostart" => {
+                a.autostart = match it.next().as_deref() {
+                    Some("on") | Some("true") | Some("1") => Some(true),
+                    Some("off") | Some("false") | Some("0") => Some(false),
+                    _ => {
+                        eprintln!("uso: kalkan-rs --autostart on|off");
+                        std::process::exit(2);
+                    }
+                };
             }
             "--record" => {
                 let theme = it.next().unwrap_or_default();
@@ -164,6 +176,18 @@ fn main() {
         cfg.active_theme = t.clone();
     }
 
+    if let Some(on) = args.autostart {
+        // Grava no config (o serviço em execução aplica em ~1 s) e no registro.
+        cfg.autostart = on;
+        cfg.save();
+        kalkan_rs::autostart::sync(on);
+        match kalkan_rs::autostart::registered_command() {
+            Some(c) => println!("iniciar com o Windows: ligado ({c})"),
+            None => println!("iniciar com o Windows: desligado"),
+        }
+        return;
+    }
+
     if args.list {
         for t in cfg.list_themes() {
             println!("{t}{}", if t == cfg.active_theme { "  (ativo)" } else { "" });
@@ -200,6 +224,8 @@ fn main() {
         return;
     }
     log::info!("kalkan-rs {} iniciando (tema '{}')", env!("CARGO_PKG_VERSION"), cfg.active_theme);
+    // Mantém a entrada de inicialização coerente com o config (e com o caminho atual do .exe).
+    kalkan_rs::autostart::sync(cfg.autostart);
 
     let frames = Arc::new(TripleBuffer::new());
     let status = Arc::new(DriverStatus::default());

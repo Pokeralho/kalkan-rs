@@ -37,6 +37,8 @@ pub struct Config {
     pub disk_mount: String,
     /// Backend de GPU: "auto" (D3DKMT, leve), "nvml" (+watts/fan%, ~19 MB) ou "pdh".
     pub gpu_backend: String,
+    /// Inicia o serviço junto com o Windows (registro do usuário, sem admin).
+    pub autostart: bool,
     /// Tela de inicialização exibida ao ligar (é um tema comum, editável no Studio).
     pub splash: bool,
     /// Duração da tela de inicialização em milissegundos.
@@ -71,6 +73,7 @@ impl Default for Config {
             anim_cache_mb: 12,
             disk_mount: "C:\\".into(),
             gpu_backend: "auto".into(),
+            autostart: false,
             lyrics: true,
             music_mode: true,
             music_theme: "now_playing".into(),

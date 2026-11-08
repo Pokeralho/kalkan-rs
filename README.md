@@ -53,7 +53,10 @@ Kalkan Aura LCD 240 has been tested.
    share the same COM port.
 3. Run `kalkan-rs.exe`. An icon appears in the system tray; the display shows the boot screen and then the active theme.
 
-To start with Windows, put a shortcut to `kalkan-rs.exe` in `shell:startup`.
+To start with Windows, tick **Iniciar com o Windows** in the tray menu (or in Studio, Display tab), or run
+`kalkan-rs --autostart on`. It adds an entry for your user only (`HKCU\...\Run`, no administrator rights) that
+always points to the executable you are running: if you move the folder, the path is fixed the next time you open it.
+If the official Kalkan software also starts with Windows, disable it there, since both cannot use the display at once.
 
 Requirements: Windows 10 or 11, 64-bit. Kalkan Studio uses WebView2, which ships with Windows 11 (on Windows 10,
 install the [Evergreen runtime](https://developer.microsoft.com/microsoft-edge/webview2/) if Studio does not open).
@@ -66,8 +69,8 @@ install the [Evergreen runtime](https://developer.microsoft.com/microsoft-edge/w
 - **Light**: ~22 MB of RAM and ~0.04% CPU with static themes. No .NET, no bundled ffmpeg.
 - **Driver**: triple-buffered frames that never block rendering, keep-alive, automatic reconnection when the USB
   cable comes back, and identical frames are not resent.
-- **Tray menu**: themes, brightness, max FPS, rotation, flip/mirror, silent mode, automatic music mode, reload and
-  a shortcut to Kalkan Studio. Changes made by Studio to `config.toml` are applied within a second.
+- **Tray menu**: themes, brightness, max FPS, rotation, flip/mirror, silent mode, automatic music mode, start with
+  Windows, reload and a shortcut to Kalkan Studio. Changes made by Studio to `config.toml` are applied within a second.
 - **Boot screen**: an animated Dark Hub snowflake. It is a regular theme and can be edited or replaced.
 
 ### Music mode
@@ -150,6 +153,7 @@ Guide (in Portuguese): [docs/STUDIO.md](./docs/STUDIO.md).
 | Key | Default | Description |
 |---|---|---|
 | `active_theme` | `"dark_hub"` | Theme folder in `assets/themes/` |
+| `autostart` | `false` | Start with Windows (current user, no admin) |
 | `brightness` | `80` | Panel brightness (0–100) |
 | `max_fps` | `24` | 1–30. Animated backgrounds cost CPU in proportion to FPS |
 | `flip_vertical` / `flip_horizontal` | `true` / `true` | Orientation (180° matches the Kalkan Aura LCD 240 mounting) |
@@ -158,7 +162,7 @@ Guide (in Portuguese): [docs/STUDIO.md](./docs/STUDIO.md).
 | `splash` / `splash_ms` | `true` / `2600` | Boot screen and its duration |
 | `gpu_backend` | `"auto"` | `auto` (D3DKMT), `nvml` (adds power and fan %, ~19 MB more RAM) or `pdh` |
 
-Command line: `--theme <name>`, `--no-tray`, `--preview <theme> [out.png]`, `--record <theme> <out.gif> [s]`,
+Command line: `--theme <name>`, `--no-tray`, `--autostart on|off`, `--preview <theme> [out.png]`, `--record <theme> <out.gif> [s]`,
 `--list-themes`, `--verbose`.
 
 ## Performance

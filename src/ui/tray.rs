@@ -25,6 +25,7 @@ enum Action {
     Rotation(u32),
     Silent,
     Music,
+    Autostart,
     FlipV,
     FlipH,
     Reload,
@@ -48,6 +49,7 @@ struct Tray {
     rot_items: Vec<(u32, CheckMenuItem)>,
     silent_item: CheckMenuItem,
     music_item: CheckMenuItem,
+    autostart_item: CheckMenuItem,
     flip_v: CheckMenuItem,
     flip_h: CheckMenuItem,
     icon: TrayIcon,
@@ -131,6 +133,8 @@ impl Tray {
         let flip_h = CheckMenuItem::new("Espelhar horizontalmente", true, cfg.flip_horizontal, None);
         actions.insert(flip_h.id().clone(), Action::FlipH);
         rot_menu.append_items(&[&PredefinedMenuItem::separator(), &flip_v, &flip_h])?;
+        let autostart_item = CheckMenuItem::new("Iniciar com o Windows", true, cfg.autostart, None);
+        actions.insert(autostart_item.id().clone(), Action::Autostart);
         let music_item = CheckMenuItem::new("Modo música automático", true, cfg.music_mode, None);
         actions.insert(music_item.id().clone(), Action::Music);
         let silent_item = CheckMenuItem::new("Modo silencioso", true, cfg.silent, None);
@@ -155,6 +159,7 @@ impl Tray {
             &rot_menu,
             &music_item,
             &silent_item,
+            &autostart_item,
             &PredefinedMenuItem::separator(),
             &reload,
             &open_themes,
@@ -183,6 +188,7 @@ impl Tray {
             rot_items,
             silent_item,
             music_item,
+            autostart_item,
             flip_v,
             flip_h,
             icon,
@@ -205,6 +211,7 @@ impl Tray {
         }
         self.silent_item.set_checked(self.cfg.silent);
         self.music_item.set_checked(self.cfg.music_mode);
+        self.autostart_item.set_checked(self.cfg.autostart);
         self.flip_v.set_checked(self.cfg.flip_vertical);
         self.flip_h.set_checked(self.cfg.flip_horizontal);
     }
@@ -250,6 +257,9 @@ impl Tray {
         }
         if (c.music_mode, &c.music_theme, c.music_return_s) != (old.music_mode, &old.music_theme, old.music_return_s) {
             let _ = self.render.send(RenderCmd::Music(c.music_settings()));
+        }
+        if c.autostart != old.autostart {
+            crate::autostart::sync(c.autostart);
         }
         if c.max_fps != old.max_fps {
             let _ = self.render.send(RenderCmd::MaxFps(c.max_fps));
@@ -326,6 +336,10 @@ impl Tray {
                 let _ = self.render.send(RenderCmd::Silent(self.cfg.silent));
                 let b = if self.cfg.silent { 0 } else { self.cfg.brightness };
                 let _ = self.driver.send(DriverCmd::Brightness(b));
+            }
+            Action::Autostart => {
+                self.cfg.autostart = !self.cfg.autostart;
+                crate::autostart::sync(self.cfg.autostart);
             }
             Action::Music => {
                 self.cfg.music_mode = !self.cfg.music_mode;

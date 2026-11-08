@@ -6,6 +6,9 @@
 # Tema ativo (pasta em themes_dir)
 active_theme = "dark_hub"
 
+# Inicia o serviço junto com o Windows (HKCU\...\Run, sem administrador)
+autostart = false
+
 # Painel
 brightness = 80            # 0..100
 max_fps = 24               # 1..30 — fundos animados custam CPU proporcional ao FPS

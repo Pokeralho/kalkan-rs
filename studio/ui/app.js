@@ -1054,6 +1054,8 @@ async function renderDevice() {
     .check("Inverter V", "flip_vertical").check("Espelhar H", "flip_horizontal").check("Silencioso", "silent")
     .range("FPS máx.", "max_fps", { min: 1, max: 30, step: 1, def: 24 })
     .note("Padrão 24. Fundos animados custam CPU proporcional ao FPS (driver USB do Windows): ~0,30% a 15 fps, ~0,43% a 30 fps. Temas estáticos quase não são afetados.");
+  f.section("Sistema").check("Iniciar com o Windows", "autostart", false)
+    .note("Cria a entrada em <code>HKCU\\…\\Run</code> (só para o seu usuário, sem administrador). Aplicado pelo serviço em ~1 s.");
   f.section("Música").check("Modo automático", "music_mode", true)
     .text("Tema da música", "music_theme", { placeholder: "now_playing" })
     .num("Voltar após (s)", "music_return_s", { min: 1, max: 600, def: 8 })

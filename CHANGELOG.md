@@ -2,6 +2,13 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.4.0] — 2026-11-08
+
+### Adicionado
+- **Iniciar com o Windows:** opção na bandeja, no Studio (aba Display), no `config.toml` (`autostart`) e na linha de comando (`kalkan-rs --autostart on|off`).
+  - Usa a chave `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`: só para o usuário atual, sem administrador.
+  - A entrada sempre aponta para o executável em uso e é corrigida sozinha se a pasta mudar de lugar.
+
 ## [0.3.1] — 2026-11-08
 
 ### Corrigido

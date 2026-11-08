@@ -21,7 +21,7 @@ O Studio roda em um processo separado (~45 MB, por causa do WebView2) e só prec
 | **Canvas** | Selecionar, mover, redimensionar e editar pontos |
 | **Propriedades** | Campos do tipo da camada mais a seção **Comportamento**, comum a todas |
 | **Fundo** | Tipo de fundo (incluindo **capa** desfocada), importação de mídia, desfoque, escurecimento, nome do tema, fonte padrão e **paleta** |
-| **Display** | Brilho, FPS, rotação, inverter/espelhar, modo silencioso, **modo música** e letras, tela de inicialização, backend de GPU, clima |
+| **Display** | Brilho, FPS, rotação, inverter/espelhar, modo silencioso, **iniciar com o Windows**, **modo música** e letras, tela de inicialização, backend de GPU, clima |
 | **Dados** | Telemetria ao vivo; clique em um nome para copiar o placeholder |
 
 ## Edição no canvas

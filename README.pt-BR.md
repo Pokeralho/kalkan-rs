@@ -51,7 +51,14 @@ O mesmo display e o mesmo protocolo aparecem no software GAMDIAS ZEUS CAST. Por 
    - dois programas não podem usar a mesma porta COM ao mesmo tempo.
 3. Execute `kalkan-rs.exe`. Um ícone aparece na bandeja do Windows, e o display mostra a tela de inicialização e depois o tema ativo.
 
-Para iniciar junto com o Windows, coloque um atalho do `kalkan-rs.exe` em `shell:startup`.
+Para iniciar junto com o Windows, use qualquer uma destas opções:
+- marque **Iniciar com o Windows** no menu da bandeja;
+- ou no Studio, na aba Display;
+- ou rode `kalkan-rs --autostart on`.
+
+A opção cria uma entrada só para o seu usuário (`HKCU\...\Run`, sem administrador), sempre apontando para o executável em uso. Se você mudar a pasta de lugar, o caminho é corrigido na próxima vez que abrir o programa.
+
+Se o software oficial da Kalkan também inicia com o Windows, desative-o lá, porque os dois não podem usar o display ao mesmo tempo.
 
 Requisitos: Windows 10 ou 11, 64 bits. O Kalkan Studio usa o WebView2, que já vem no Windows 11. No Windows 10, instale o [runtime Evergreen](https://developer.microsoft.com/microsoft-edge/webview2/) se o Studio não abrir.
 
@@ -65,7 +72,7 @@ Requisitos: Windows 10 ou 11, 64 bits. O Kalkan Studio usa o WebView2, que já v
   - quadros em triple buffer, que nunca travam a renderização;
   - keep-alive e reconexão automática quando o cabo USB volta;
   - quadros idênticos não são reenviados.
-- **Menu da bandeja**: temas, brilho, FPS máximo, rotação, inverter/espelhar, modo silencioso, modo música automático, recarregar e atalho para o Kalkan Studio. Mudanças feitas pelo Studio no `config.toml` são aplicadas em até um segundo.
+- **Menu da bandeja**: temas, brilho, FPS máximo, rotação, inverter/espelhar, modo silencioso, modo música automático, iniciar com o Windows, recarregar e atalho para o Kalkan Studio. Mudanças feitas pelo Studio no `config.toml` são aplicadas em até um segundo.
 - **Tela de inicialização**: um floco animado do Dark Hub. É um tema comum, que pode ser editado ou trocado.
 
 ### Modo música
@@ -140,6 +147,7 @@ O `config.toml` é criado ao lado do executável. Todas as opções estão em [c
 | Chave | Padrão | Descrição |
 |---|---|---|
 | `active_theme` | `"dark_hub"` | Pasta do tema em `assets/themes/` |
+| `autostart` | `false` | Iniciar com o Windows (usuário atual, sem admin) |
 | `brightness` | `80` | Brilho do painel (0–100) |
 | `max_fps` | `24` | 1–30. Fundos animados custam CPU proporcional ao FPS |
 | `flip_vertical` / `flip_horizontal` | `true` / `true` | Orientação (180° corresponde à montagem do Kalkan Aura LCD 240) |
@@ -148,7 +156,7 @@ O `config.toml` é criado ao lado do executável. Todas as opções estão em [c
 | `splash` / `splash_ms` | `true` / `2600` | Tela de inicialização e sua duração |
 | `gpu_backend` | `"auto"` | `auto` (D3DKMT), `nvml` (acrescenta consumo e ventoinha %, ~19 MB a mais de RAM) ou `pdh` |
 
-Linha de comando: `--theme <nome>`, `--no-tray`, `--preview <tema> [saida.png]`, `--record <tema> <saida.gif> [s]`, `--list-themes`, `--verbose`.
+Linha de comando: `--theme <nome>`, `--no-tray`, `--autostart on|off`, `--preview <tema> [saida.png]`, `--record <tema> <saida.gif> [s]`, `--list-themes`, `--verbose`.
 
 ## Desempenho
 
