@@ -1,0 +1,79 @@
+[package]
+name = "kalkan-rs"
+version = "0.2.0"
+edition = "2021"
+description = "Painel e driver de alta performance para o display AIO KALKAN / GAMDIAS ZEUS CAST (320x240 RGB565)"
+license = "MIT"
+
+[workspace]
+members = [".", "studio"]
+
+[lib]
+name = "kalkan_rs"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kalkan-rs"
+path = "src/main.rs"
+
+[dependencies]
+# Núcleo
+anyhow = "1"
+log = { version = "0.4", features = ["std"] }
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+chrono = "0.4"
+crossbeam-channel = "0.5"
+serde_json = "1"
+
+# Hardware / FFI
+libloading = "0.8"
+
+# Telemetria
+sysinfo = { version = "0.32", default-features = false, features = ["system", "disk", "network"] }
+nvml-wrapper = "0.10"
+wmi = "0.14"
+
+# Mídia / Renderização
+image = { version = "0.25", default-features = false, features = ["gif", "png", "webp", "jpeg"] }
+ab_glyph = "0.2"
+
+# Hot-reload e UI
+notify = "6"
+tray-icon = "0.19"
+
+[dependencies.windows]
+version = "0.58"
+features = [
+    "Foundation",
+    "Media_Control",
+    "Web_Http",
+    "Win32_Foundation",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Variant",
+    "Win32_System_Performance",
+    "Win32_System_Console",
+    "Win32_System_Threading",
+    "Win32_Security",
+    "Win32_Media_MediaFoundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Shell",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Wdk_Graphics_Direct3D",
+]
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 16
+panic = "abort"
+strip = true
+
+# O serviço do display é otimizado ao máximo; o Studio compila mais rápido.
+[profile.release.package.kalkan-rs]
+codegen-units = 1
+
+[profile.dev.package."*"]
+opt-level = 2

@@ -1,0 +1,347 @@
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  CYBERPUNK // GAMING — gauges radiais + telemetria CPU/GPU         ║
+# ╚══════════════════════════════════════════════════════════════════╝
+# Coordenadas em pixels (tela 320x240). Ângulos: 0° = topo, sentido horário.
+# Cores: #RGB, #RRGGBB ou #RRGGBBAA. Widgets são desenhados por `z` crescente.
+# Salve o arquivo com o app aberto: o tema recarrega sozinho (hot-reload).
+
+[meta]
+name = "Cyberpunk"
+author = "kalkan-rs"
+description = "Synthwave animado com gauges de temperatura e uso"
+fps = 30
+
+[background]
+# Para vídeo: type = "video" e path = "bg.mp4" (H.264/HEVC/WMV via Media Foundation)
+type = "gif"
+path = "bg.gif"
+fit = "cover"      # cover | contain | stretch
+dim = 0.45         # escurece o fundo para destacar os números
+
+# ─────────────── Painéis translúcidos ───────────────
+[[widgets.rect]]
+x = 0
+y = 0
+width = 320
+height = 22
+color_hex = "#0A0016CC"
+z = 0
+
+[[widgets.rect]]
+x = 0
+y = 176
+width = 320
+height = 64
+color_hex = "#0A0016D9"
+z = 0
+
+[[widgets.rect]]   # linha neon do cabeçalho
+x = 0
+y = 22
+width = 320
+height = 1
+color_hex = "#FF2BD6"
+z = 1
+
+[[widgets.rect]]
+x = 0
+y = 175
+width = 320
+height = 1
+color_hex = "#00F0FF"
+z = 1
+
+# ─────────────── Cabeçalho ───────────────
+[[widgets.text]]
+text = "SYS//MONITOR"
+font = "bahnschrift.ttf"
+size = 13
+x = 8
+y = 4
+color_hex = "#FF2BD6"
+letter_spacing = 1.5
+z = 5
+
+[[widgets.text]]
+text = "{media_icon} {media_title}"
+font = "bahnschrift.ttf"
+size = 11
+x = 160
+y = 5
+align = "center"
+max_width = 130
+color_hex = "#B9A6FF"
+z = 5
+visible_if = "media_playing == 1"
+animation = "marquee"
+animation_speed = 0.8
+
+[[widgets.text]]
+text = "{time:%H:%M:%S}"
+font = "bahnschrift.ttf"
+size = 14
+x = 312
+y = 3
+align = "right"
+color_hex = "#00F0FF"
+z = 5
+
+# ─────────────── CPU (esquerda) ───────────────
+[[widgets.radial_gauge]]
+metric = "cpu_temp"
+min = 30
+max = 95
+center_x = 80
+center_y = 96
+radius = 52
+start_angle = -135
+end_angle = 135
+stroke_width = 9
+color_gradient = ["#00FF9C", "#FFE600", "#FF2B4F"]
+track_color = "#FFFFFF1A"
+z = 2
+
+[[widgets.radial_gauge]]   # anel interno: uso de CPU
+metric = "cpu_usage"
+center_x = 80
+center_y = 96
+radius = 40
+stroke_width = 4
+color_gradient = ["#00F0FF", "#FF2BD6"]
+track_color = "#FFFFFF12"
+z = 2
+
+[[widgets.text]]
+text = "{cpu_temp}°"
+font = "bahnschrift.ttf"
+size = 30
+x = 82
+y = 90
+align = "center"
+valign = "middle"
+color_hex = "#FFFFFF"
+shadow = "#000000AA"
+z = 6
+# Fica vermelho acima de 85 °C (expressões aceitam qualquer métrica)
+color_rules = [{ when = "cpu_temp >= 85", color = "#FF2B4F" }]
+
+[[widgets.text]]
+text = "{cpu_usage:.0}%"
+font = "bahnschrift.ttf"
+size = 13
+x = 80
+y = 116
+align = "center"
+valign = "middle"
+color_hex = "#00F0FF"
+z = 6
+
+[[widgets.text]]
+text = "CPU"
+font = "bahnschrift.ttf"
+size = 13
+x = 80
+y = 142
+align = "center"
+valign = "middle"
+color_hex = "#FF2BD6"
+letter_spacing = 2
+z = 6
+
+[[widgets.text]]
+text = "{cpu_clock_ghz:.2} GHz · {cpu_cores} T"
+font = "bahnschrift.ttf"
+size = 11
+x = 80
+y = 158
+align = "center"
+color_hex = "#C8C8E0"
+z = 6
+
+# ─────────────── GPU (direita) ───────────────
+[[widgets.radial_gauge]]
+metric = "gpu_temp"
+min = 30
+max = 90
+center_x = 240
+center_y = 96
+radius = 52
+start_angle = -135
+end_angle = 135
+stroke_width = 9
+color_gradient = ["#00FF9C", "#FFE600", "#FF2B4F"]
+track_color = "#FFFFFF1A"
+z = 2
+
+[[widgets.radial_gauge]]   # anel interno: uso de GPU
+metric = "gpu_usage"
+center_x = 240
+center_y = 96
+radius = 40
+stroke_width = 4
+color_gradient = ["#00F0FF", "#FF2BD6"]
+track_color = "#FFFFFF12"
+z = 2
+
+[[widgets.text]]
+text = "{gpu_temp}°"
+font = "bahnschrift.ttf"
+size = 30
+x = 242
+y = 90
+align = "center"
+valign = "middle"
+color_hex = "#FFFFFF"
+shadow = "#000000AA"
+z = 6
+
+[[widgets.text]]
+text = "{gpu_usage:.0}%"
+font = "bahnschrift.ttf"
+size = 13
+x = 240
+y = 116
+align = "center"
+valign = "middle"
+color_hex = "#00F0FF"
+z = 6
+
+[[widgets.text]]
+text = "GPU"
+font = "bahnschrift.ttf"
+size = 13
+x = 240
+y = 142
+align = "center"
+valign = "middle"
+color_hex = "#FF2BD6"
+letter_spacing = 2
+z = 6
+
+[[widgets.text]]
+text = "{gpu_clock} MHz · {gpu_vram_pct:.0}% VRAM"
+font = "bahnschrift.ttf"
+size = 11
+x = 240
+y = 158
+align = "center"
+color_hex = "#C8C8E0"
+z = 6
+
+# ─────────────── Centro: VRAM vertical ───────────────
+[[widgets.bar]]
+metric = "gpu_vram_pct"
+x = 155
+y = 50
+width = 10
+height = 90
+orientation = "vertical"
+radius = 5
+color_gradient = ["#00F0FF", "#FF2BD6"]
+track_color = "#FFFFFF14"
+z = 2
+
+[[widgets.text]]
+text = "VRAM"
+font = "bahnschrift.ttf"
+size = 9
+x = 160
+y = 146
+align = "center"
+color_hex = "#8888AA"
+z = 6
+
+# ─────────────── Rodapé: RAM, histórico e rede ───────────────
+[[widgets.text]]
+text = "RAM"
+font = "bahnschrift.ttf"
+size = 11
+x = 8
+y = 180
+color_hex = "#FF2BD6"
+z = 6
+
+[[widgets.bar]]
+metric = "ram_pct"
+x = 38
+y = 184
+width = 92
+height = 6
+radius = 3
+color_gradient = ["#00FF9C", "#FFE600", "#FF2B4F"]
+z = 3
+
+[[widgets.text]]
+text = "{ram_used_gb:.1}/{ram_total_gb:.0}G"
+font = "bahnschrift.ttf"
+size = 11
+x = 136
+y = 180
+color_hex = "#C8C8E0"
+z = 6
+
+[[widgets.text]]
+text = "VRAM {gpu_vram_used_gb:.1}/{gpu_vram_total_gb:.0}G"
+font = "bahnschrift.ttf"
+size = 11
+x = 312
+y = 180
+align = "right"
+color_hex = "#C8C8E0"
+z = 6
+
+[[widgets.sparkline]]
+metric = "cpu_usage"
+x = 8
+y = 196
+width = 148
+height = 26
+seconds = 30
+min = 0
+max = 100
+color_hex = "#00F0FF"
+fill_opacity = 0.30
+stroke_width = 1.5
+z = 4
+
+[[widgets.sparkline]]
+metric = "gpu_usage"
+x = 164
+y = 196
+width = 148
+height = 26
+seconds = 30
+min = 0
+max = 100
+color_hex = "#FF2BD6"
+fill_opacity = 0.30
+stroke_width = 1.5
+z = 4
+
+[[widgets.text]]
+text = "↓ {net_down}"
+font = "bahnschrift.ttf"
+size = 11
+x = 8
+y = 225
+color_hex = "#00FF9C"
+z = 6
+
+[[widgets.text]]
+text = "↑ {net_up}"
+font = "bahnschrift.ttf"
+size = 11
+x = 110
+y = 225
+color_hex = "#FFE600"
+z = 6
+
+[[widgets.text]]
+text = "DISK C: {disk_pct:.0}%  ·  {cpu_temp*1.8+32:.0}°F"
+font = "bahnschrift.ttf"
+size = 11
+x = 312
+y = 225
+align = "right"
+color_hex = "#8888AA"
+z = 6

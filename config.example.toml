@@ -1,0 +1,34 @@
+# Configuração do kalkan-rs. Copie para `config.toml` (ao lado do executável)
+# ou deixe o programa criar um com os valores padrão.
+# Mudanças feitas pela bandeja ou pelo Kalkan Studio são gravadas aqui e
+# aplicadas pelo serviço em ~1 s.
+
+# Tema ativo (pasta em themes_dir)
+active_theme = "dark_hub"
+
+# Painel
+brightness = 80            # 0..100
+max_fps = 24               # 1..30 — fundos animados custam CPU proporcional ao FPS
+rotation = 0               # rotação de hardware: 0 | 90 | 180 | 270
+flip_vertical = true       # orientação por software (vertical + horizontal = 180°)
+flip_horizontal = true
+silent = false             # tela preta e brilho 0
+
+# Tela de inicialização (tema em splash_dir, editável no Studio)
+splash = true
+splash_ms = 2600
+splash_dir = "assets/splash"
+
+# Pastas
+themes_dir = "assets/themes"
+fonts_dir = "assets/fonts"
+# dll_path = "C:\\Program Files\\KALKAN\\LcdComm.dll"
+
+# Mídia e telemetria
+anim_cache_mb = 12         # GIF/WebP/APNG maiores que isso são decodificados em streaming
+disk_mount = "C:\\"
+gpu_backend = "auto"       # auto (D3DKMT, leve) | nvml (+watts/fan%, ~19 MB) | pdh
+
+# Clima via Open-Meteo (sem chave). Deixe comentado para desativar.
+# weather_lat = -23.55
+# weather_lon = -46.63

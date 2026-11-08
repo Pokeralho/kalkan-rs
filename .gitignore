@@ -1,0 +1,19 @@
+# Build
+/target/
+studio/gen/
+
+# Arquivos locais do usuário
+/config.toml
+*.log
+theme.toml.bak
+
+# Saídas de --preview / --record na raiz
+/preview_*.png
+/*.gif
+
+# Ferramentas
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+desktop.ini

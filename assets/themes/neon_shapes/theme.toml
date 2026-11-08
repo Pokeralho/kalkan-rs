@@ -1,0 +1,137 @@
+# Demonstração de formas livres: polígonos, estrelas, elipses, linhas,
+# degradês lineares/radiais e preenchimento "líquido" guiado por métricas.
+
+[meta]
+name = "Neon Shapes"
+author = "kalkan-rs"
+fps = 30
+
+[background]
+type = "solid"
+color = "#07060F"
+
+# Halo radial ao fundo
+[[widgets.shape]]
+kind = "ellipse"
+x = -60
+y = -40
+width = 440
+height = 320
+fill_gradient = ["#2A1458", "#07060F00"]
+gradient_type = "radial"
+z = 0
+
+# Hexágono que enche com o uso de CPU
+[[widgets.shape]]
+kind = "regular"
+sides = 6
+x = 20
+y = 40
+width = 120
+height = 120
+rotation = 30
+fill = "#FFFFFF10"
+stroke = "#00F0FF"
+stroke_width = 2
+z = 1
+
+[[widgets.shape]]
+kind = "regular"
+sides = 6
+x = 20
+y = 40
+width = 120
+height = 120
+rotation = 30
+fill_gradient = ["#00F0FF", "#7B2BFF"]
+gradient_angle = 90
+metric = "cpu_usage"
+fill_direction = 270
+opacity = 0.85
+z = 2
+
+# Estrela que enche com o uso de GPU
+[[widgets.shape]]
+kind = "star"
+sides = 5
+inner_ratio = 0.45
+x = 180
+y = 36
+width = 128
+height = 128
+fill = "#FFFFFF10"
+stroke = "#FF2BD6"
+stroke_width = 2
+z = 1
+
+[[widgets.shape]]
+kind = "star"
+sides = 5
+inner_ratio = 0.45
+x = 180
+y = 36
+width = 128
+height = 128
+fill_gradient = ["#FFE600", "#FF2BD6"]
+gradient_angle = 90
+metric = "gpu_usage"
+opacity = 0.9
+z = 2
+
+# Polígono livre (pontos normalizados 0..1 dentro da caixa)
+[[widgets.shape]]
+kind = "polygon"
+x = 0
+y = 196
+width = 320
+height = 44
+points = [[0, 0.5], [0.2, 0.1], [0.45, 0.6], [0.7, 0.0], [1, 0.4], [1, 1], [0, 1]]
+fill_gradient = ["#00FF9C55", "#00F0FF22"]
+gradient_angle = 0
+stroke = "#00FF9C"
+stroke_width = 1.5
+z = 1
+
+# Linha decorativa
+[[widgets.shape]]
+kind = "line"
+x = 16
+y = 182
+width = 288
+height = 4
+points = [[0, 0.5], [1, 0.5]]
+stroke = "#FFFFFF30"
+stroke_width = 1
+z = 1
+
+[[widgets.text]]
+text = "CPU {cpu_usage:.0}%"
+font = "bahnschrift.ttf"
+size = 18
+x = 80
+y = 100
+align = "center"
+valign = "middle"
+shadow = "#000000CC"
+z = 5
+
+[[widgets.text]]
+text = "GPU {gpu_usage:.0}%"
+font = "bahnschrift.ttf"
+size = 18
+x = 244
+y = 106
+align = "center"
+valign = "middle"
+shadow = "#000000CC"
+z = 5
+
+[[widgets.text]]
+text = "{time:%H:%M}  ·  {cpu_temp}° / {gpu_temp}°"
+font = "bahnschrift.ttf"
+size = 15
+x = 160
+y = 10
+align = "center"
+color_hex = "#B9A6FF"
+z = 5

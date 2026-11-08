@@ -1,0 +1,123 @@
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  MINIMAL CLEAN — relógio grande, clima, rede e gráfico de linha    ║
+# ╚══════════════════════════════════════════════════════════════════╝
+# Tema estático: renderiza só quando um valor muda (≈1x por segundo),
+# consumo de CPU praticamente zero.
+# Clima: defina weather_lat / weather_lon no config.toml (Open-Meteo, sem chave).
+
+[meta]
+name = "Minimal Clean"
+author = "kalkan-rs"
+description = "Relógio, clima, velocidade de rede e histórico"
+fps = 15
+
+[background]
+type = "static"
+path = "bg.png"
+fit = "cover"
+
+# ─────────────── Relógio ───────────────
+[[widgets.text]]
+text = "{time:%H:%M}"
+font = "segoeuil.ttf"   # Segoe UI Light
+size = 76
+x = 160
+y = 4
+align = "center"
+color_hex = "#F2F4F8"
+z = 2
+
+[[widgets.text]]
+text = "{date:%d/%m/%Y}   ·   {weather_temp:.0}°C  {weather_desc}"
+font = "segoeui.ttf"
+size = 14
+x = 160
+y = 100
+align = "center"
+max_width = 300
+color_hex = "#9AA4B8"
+z = 2
+
+[[widgets.rect]]
+x = 16
+y = 128
+width = 288
+height = 1
+color_hex = "#FFFFFF22"
+z = 1
+
+# ─────────────── Rede ───────────────
+[[widgets.text]]
+text = "↓  {net_down}"
+font = "seguisb.ttf"    # Segoe UI Semibold
+size = 15
+x = 16
+y = 136
+color_hex = "#6EC1FF"
+z = 2
+
+[[widgets.text]]
+text = "↑  {net_up}"
+font = "seguisb.ttf"
+size = 15
+x = 304
+y = 136
+align = "right"
+color_hex = "#FFB36E"
+z = 2
+
+[[widgets.sparkline]]
+metric = "net_down_kb"
+x = 16
+y = 160
+width = 288
+height = 48
+seconds = 60
+min = 0
+color_hex = "#6EC1FF"
+fill_opacity = 0.28
+stroke_width = 1.6
+z = 1
+
+[[widgets.sparkline]]
+metric = "net_up_kb"
+x = 16
+y = 160
+width = 288
+height = 48
+seconds = 60
+min = 0
+color_hex = "#FFB36E"
+fill_opacity = 0.0
+stroke_width = 1.2
+z = 1
+
+# ─────────────── Rodapé ───────────────
+[[widgets.text]]
+text = "CPU {cpu_usage:.0}% · {cpu_temp}°"
+font = "segoeui.ttf"
+size = 12
+x = 16
+y = 216
+color_hex = "#7D879B"
+z = 2
+
+[[widgets.text]]
+text = "GPU {gpu_usage:.0}% · {gpu_temp}°"
+font = "segoeui.ttf"
+size = 12
+x = 160
+y = 216
+align = "center"
+color_hex = "#7D879B"
+z = 2
+
+[[widgets.text]]
+text = "RAM {ram_pct:.0}%"
+font = "segoeui.ttf"
+size = 12
+x = 304
+y = 216
+align = "right"
+color_hex = "#7D879B"
+z = 2

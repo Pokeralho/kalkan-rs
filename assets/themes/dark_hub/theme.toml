@@ -1,0 +1,241 @@
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  DARK HUB — identidade visual Dark Hub                             ║
+# ╚══════════════════════════════════════════════════════════════════╝
+# Vitrine da customização: paleta ($ice), grade de núcleos, regras de cor,
+# expressões, brilho e animações. Troque a paleta para recolorir tudo.
+
+[meta]
+name = "Dark Hub"
+author = "Dark Hub"
+fps = 24
+font = "bahnschrift.ttf"
+
+[palette]
+ice = "#38E1F0"
+deep = "#07090D"
+panel = "#0E141CCC"
+muted = "#6B7A8C"
+hot = "#FF3B5C"
+warm = "#FFC14D"
+
+[background]
+type = "solid"
+color = "$deep"
+
+# ── Cabeçalho: logo (floco) + nome + relógio ──
+[[widgets.shape]]
+kind = "line"
+x = 8
+y = 6
+width = 22
+height = 22
+points = [[0.5, 0.5], [0.5, 0.05]]
+paths = [[[0.37, 0.11], [0.5, 0.24], [0.63, 0.11]]]
+repeat = 6
+stroke = "$ice"
+stroke_width = 2
+glow = "#38E1F066"
+glow_radius = 3
+z = 1
+
+[[widgets.text]]
+text = "DARK HUB"
+size = 14
+x = 36
+y = 9
+color_hex = "#FFFFFF"
+letter_spacing = 3
+z = 2
+
+[[widgets.text]]
+text = "{time:%H:%M:%S}"
+size = 15
+x = 312
+y = 8
+align = "right"
+color_hex = "$ice"
+z = 2
+
+# ── Cartões CPU / GPU ──
+[[widgets.rect]]
+x = 8
+y = 36
+width = 148
+height = 92
+radius = 10
+color_hex = "$panel"
+z = 0
+
+[[widgets.rect]]
+x = 164
+y = 36
+width = 148
+height = 92
+radius = 10
+color_hex = "$panel"
+z = 0
+
+[[widgets.text]]
+text = "CPU"
+size = 11
+x = 20
+y = 44
+color_hex = "$muted"
+letter_spacing = 2
+z = 2
+
+[[widgets.text]]
+text = "{cpu_temp:.0}°"
+size = 38
+x = 18
+y = 56
+color_hex = "#FFFFFF"
+z = 2
+color_rules = [
+  { when = "cpu_temp >= 85", color = "$hot" },
+  { when = "cpu_temp >= 70", color = "$warm" },
+]
+
+[[widgets.text]]
+text = "{cpu_usage:.0}%  ·  {cpu_clock_ghz:.1} GHz"
+size = 11
+x = 20
+y = 104
+color_hex = "$muted"
+z = 2
+
+[[widgets.radial_gauge]]
+metric = "cpu_usage"
+center_x = 124
+center_y = 82
+radius = 22
+stroke_width = 5
+start_angle = 0
+end_angle = 360
+rounded_caps = true
+color_gradient = ["$ice", "#7B61FF"]
+track_color = "#FFFFFF10"
+z = 2
+glow = "#38E1F055"
+glow_radius = 4
+
+[[widgets.text]]
+text = "GPU"
+size = 11
+x = 176
+y = 44
+color_hex = "$muted"
+letter_spacing = 2
+z = 2
+
+[[widgets.text]]
+text = "{gpu_temp:.0}°"
+size = 38
+x = 174
+y = 56
+color_hex = "#FFFFFF"
+z = 2
+color_rules = [
+  { when = "gpu_temp >= 83", color = "$hot" },
+  { when = "gpu_temp >= 70", color = "$warm" },
+]
+
+[[widgets.text]]
+text = "{gpu_usage:.0}%  ·  {gpu_vram_used_gb:.1}/{gpu_vram_total_gb:.0}G"
+size = 11
+x = 176
+y = 104
+color_hex = "$muted"
+z = 2
+
+[[widgets.radial_gauge]]
+metric = "gpu_usage"
+center_x = 280
+center_y = 82
+radius = 22
+stroke_width = 5
+start_angle = 0
+end_angle = 360
+rounded_caps = true
+color_gradient = ["$ice", "#7B61FF"]
+track_color = "#FFFFFF10"
+z = 2
+glow = "#38E1F055"
+glow_radius = 4
+
+# ── Núcleos ──
+[[widgets.cores]]
+x = 8
+y = 138
+width = 304
+height = 40
+columns = 0
+gap = 2
+radius = 2
+color_gradient = ["$ice", "#7B61FF", "$hot"]
+track_color = "#FFFFFF0C"
+z = 1
+
+# ── Rodapé: RAM + rede / música ──
+[[widgets.text]]
+text = "RAM {ram_used_gb:.1}/{ram_total_gb:.0} GB"
+size = 11
+x = 8
+y = 188
+color_hex = "$muted"
+z = 2
+
+[[widgets.bar]]
+metric = "ram_pct"
+x = 8
+y = 204
+width = 140
+height = 5
+radius = 2.5
+color_gradient = ["$ice", "#7B61FF", "$hot"]
+track_color = "#FFFFFF10"
+z = 2
+
+[[widgets.text]]
+text = "↓ {net_down}   ↑ {net_up}"
+size = 11
+x = 312
+y = 188
+align = "right"
+color_hex = "$muted"
+z = 2
+
+[[widgets.sparkline]]
+metric = "net_down_kb"
+x = 164
+y = 200
+width = 148
+height = 16
+seconds = 40
+min = 0
+color_hex = "$ice"
+fill_opacity = 0.2
+stroke_width = 1.2
+z = 1
+
+# Música: só aparece tocando; rola se o título for longo.
+[[widgets.text]]
+text = "♪ {media_title} — {media_artist}"
+size = 12
+x = 8
+y = 222
+max_width = 304
+color_hex = "#FFFFFF"
+z = 2
+visible_if = "media_playing == 1"
+animation = "marquee"
+animation_speed = 0.8
+
+[[widgets.text]]
+text = "{date:%d/%m/%Y}  ·  sem mídia tocando"
+size = 11
+x = 8
+y = 223
+color_hex = "#3E4A58"
+z = 2
+visible_if = "media_playing == 0"

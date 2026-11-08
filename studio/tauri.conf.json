@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Kalkan Studio",
+  "version": "0.2.0",
+  "identifier": "com.kalkan-rs.studio",
+  "build": {
+    "frontendDist": "ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Kalkan Studio",
+        "width": 1480,
+        "height": 920,
+        "minWidth": 1180,
+        "minHeight": 720,
+        "center": true,
+        "backgroundColor": "#0B0B12"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": ["icons/icon.ico", "icons/icon.png"]
+  }
+}

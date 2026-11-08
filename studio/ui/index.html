@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kalkan Studio</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ───────────── Barra superior ───────────── -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo"></span>
+      <span class="brand-name">Kalkan <b>Studio</b></span>
+    </div>
+
+    <div class="theme-picker">
+      <select id="themeSelect" title="Tema em edição"></select>
+      <button class="icon-btn" id="btnNewTheme" title="Novo tema">＋</button>
+      <button class="icon-btn" id="btnDupTheme" title="Duplicar tema">⧉</button>
+      <span id="dirtyDot" class="dirty-dot" title="Alterações não salvas"></span>
+    </div>
+
+    <div class="tools">
+      <button class="icon-btn" id="btnUndo" title="Desfazer (Ctrl+Z)">↶</button>
+      <button class="icon-btn" id="btnRedo" title="Refazer (Ctrl+Y)">↷</button>
+      <span class="sep"></span>
+      <button class="toggle" id="btnSnap" title="Encaixe em guias e grade" aria-pressed="true">Encaixe</button>
+      <button class="toggle" id="btnGrid" title="Mostrar grade" aria-pressed="false">Grade</button>
+      <span class="sep"></span>
+      <button class="icon-btn" id="btnZoomOut" title="Diminuir zoom">−</button>
+      <span id="zoomLabel" class="zoom-label">300%</span>
+      <button class="icon-btn" id="btnZoomIn" title="Aumentar zoom">+</button>
+    </div>
+
+    <div class="actions">
+      <span id="daemonPill" class="pill" title="Serviço kalkan-rs">
+        <i></i><span>Serviço</span>
+      </span>
+      <button class="btn ghost" id="btnActivate" title="Exibir este tema no display">Exibir no display</button>
+      <button class="btn primary" id="btnSave" title="Salvar (Ctrl+S)">Salvar</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ───────────── Painel esquerdo ───────────── -->
+    <aside class="panel left">
+      <section class="block">
+        <h3>Adicionar</h3>
+        <div class="palette" id="palette"></div>
+      </section>
+      <section class="block">
+        <h3>Modelos prontos</h3>
+        <div class="presets" id="presets"></div>
+      </section>
+      <section class="block grow">
+        <h3>Camadas <small id="layerCount"></small></h3>
+        <ul class="layers" id="layers"></ul>
+      </section>
+    </aside>
+
+    <!-- ───────────── Palco ───────────── -->
+    <section class="stage-wrap" id="stageWrap">
+      <div class="stage" id="stage">
+        <div class="device" id="device">
+          <canvas id="screen" width="320" height="240"></canvas>
+          <svg id="overlay" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </div>
+      <footer class="statusbar">
+        <span id="stCursor">x — · y —</span>
+        <span id="stSel">Nada selecionado</span>
+        <span class="grow"></span>
+        <span id="stHint">Arraste para mover · Shift = proporção · Alt+clique remove ponto · duplo clique adiciona ponto</span>
+        <span id="stFps">— fps</span>
+      </footer>
+      <div id="toast" class="toast"></div>
+    </section>
+
+    <!-- ───────────── Painel direito ───────────── -->
+    <aside class="panel right">
+      <nav class="tabs" id="tabs">
+        <button data-tab="props" class="active">Propriedades</button>
+        <button data-tab="bg">Fundo</button>
+        <button data-tab="device">Display</button>
+        <button data-tab="data">Dados</button>
+      </nav>
+      <div class="tab-body" id="tab-props"></div>
+      <div class="tab-body hidden" id="tab-bg"></div>
+      <div class="tab-body hidden" id="tab-device"></div>
+      <div class="tab-body hidden" id="tab-data"></div>
+    </aside>
+  </main>
+
+  <dialog id="dlg">
+    <form method="dialog" class="dlg-form">
+      <h3 id="dlgTitle"></h3>
+      <input id="dlgInput" autocomplete="off" />
+      <div class="dlg-actions">
+        <button value="cancel" class="btn ghost">Cancelar</button>
+        <button value="ok" class="btn primary" id="dlgOk">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <datalist id="fontList"></datalist>
+  <datalist id="metricList"></datalist>
+  <script src="app.js"></script>
+</body>
+</html>
