@@ -2,6 +2,25 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.3.0] — 2026-11-08
+
+### Adicionado
+- **Música:**
+  - capa do álbum (`album_art`), com cantos arredondados e crossfade;
+  - posição/duração/progresso da faixa (`media_position_str`, `media_progress`…);
+  - **letra sincronizada** (`lyrics`, via LRCLIB) no estilo karaokê, com rolagem suave.
+- **Fundo `album`:** capa desfocada com crossfade. `blur` também funciona em imagens estáticas.
+- **Paleta extraída da capa** (`$album_vibrant`, `$album_light`, `$album_dark`, `$album_dominant`): o tema se recolore a cada música.
+- **Tema Now Playing e modo música automático** (`music_mode`, `music_theme`, `music_return_s`), com toggle na bandeja e no Studio.
+- `$nome/NN`: cor da paleta com opacidade.
+- `KALKAN_DEMO_MEDIA=1`: faixa fictícia para criar temas e documentação.
+- **Studio:** ferramentas Capa e Letra, modelo "Player completo", fundo Capa, seção Música na aba Display.
+
+### Alterado
+- Camadas estáticas da base da pilha passam a ser rasterizadas uma única vez (até 5× menos custo por atualização).
+- O letreiro (`marquee`) só pede quadros novos quando o texto realmente rola. O modo música fica em ~0,1% de CPU.
+- `--preview` espera as transições terminarem antes de capturar.
+
 ## [0.2.0] — 2026-11-08
 
 ### Adicionado

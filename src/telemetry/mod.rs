@@ -3,6 +3,7 @@
 pub mod cpu;
 pub mod gpu;
 pub mod hwmon;
+pub mod lyrics;
 pub mod media;
 pub mod memory;
 pub mod network;
@@ -62,6 +63,12 @@ pub struct Snapshot {
     pub media_album: String,
     pub media_playing: bool,
     pub media_active: bool,
+    /// Posição (s) no instante `media_sampled`; avança sozinha enquanto toca.
+    pub media_position: Option<f64>,
+    pub media_duration: Option<f64>,
+    pub media_sampled: Option<Instant>,
+    pub media_art: Option<Arc<media::AlbumArt>>,
+    pub lyrics: Option<Arc<lyrics::Lyrics>>,
     // Clima
     pub weather_temp: Option<f64>,
     pub weather_humidity: Option<f64>,
@@ -75,6 +82,16 @@ fn pct(a: Option<f64>, b: Option<f64>) -> Option<f64> {
     match (a, b) {
         (Some(a), Some(b)) if b > 0.0 => Some(a / b * 100.0),
         _ => None,
+    }
+}
+
+/// `m:ss` ou `h:mm:ss`.
+pub fn fmt_clock(secs: f64) -> String {
+    let s = secs.max(0.0) as u64;
+    if s >= 3600 {
+        format!("{}:{:02}:{:02}", s / 3600, s / 60 % 60, s % 60)
+    } else {
+        format!("{}:{:02}", s / 60, s % 60)
     }
 }
 
@@ -131,6 +148,16 @@ impl Snapshot {
             "net_down_mb" => self.net_down? / MB,
             "net_up_mb" => self.net_up? / MB,
             "media_playing" => self.media_playing as u8 as f64,
+            "media_active" => self.media_active as u8 as f64,
+            "media_position" => self.media_pos()?,
+            "media_duration" => self.media_duration?,
+            "media_remaining" => (self.media_duration? - self.media_pos()?).max(0.0),
+            "media_progress" => {
+                let d = self.media_duration.filter(|d| *d > 0.0)?;
+                (self.media_pos()? / d * 100.0).clamp(0.0, 100.0)
+            }
+            "lyrics_available" => self.lyrics.is_some() as u8 as f64,
+            "album_art_available" => self.media_art.is_some() as u8 as f64,
             "weather_temp" => self.weather_temp?,
             "weather_humidity" => self.weather_humidity?,
             "weather_wind" => self.weather_wind?,
@@ -156,6 +183,12 @@ impl Snapshot {
                 (true, true) => "Playing".into(),
                 (true, false) => "Paused".into(),
             },
+            "media_position_str" => fmt_clock(self.media_pos()?),
+            "media_duration_str" => fmt_clock(self.media_duration?),
+            "media_remaining_str" => format!("-{}", fmt_clock((self.media_duration? - self.media_pos()?).max(0.0))),
+            "lyrics_line" => self.lyric_line(0)?,
+            "lyrics_next" => self.lyric_line(1)?,
+            "lyrics_prev" => self.lyric_line(-1)?,
             "media_icon" => match (self.media_active, self.media_playing) {
                 (false, _) => "■".into(),
                 (true, true) => "▶".into(),
@@ -167,6 +200,33 @@ impl Snapshot {
             "disk_write" => fmt_rate(self.disk_write?),
             _ => return None,
         })
+    }
+
+    /// Posição atual da faixa, extrapolada desde a última leitura (suave entre amostras).
+    pub fn media_pos(&self) -> Option<f64> {
+        let p = self.media_position?;
+        let extra = match (self.media_playing, self.media_sampled) {
+            (true, Some(t)) => t.elapsed().as_secs_f64(),
+            _ => 0.0,
+        };
+        Some(match self.media_duration {
+            Some(d) => (p + extra).min(d),
+            None => p + extra,
+        })
+    }
+
+    /// Índice da linha de letra atual.
+    pub fn lyric_index(&self) -> Option<usize> {
+        self.lyrics.as_ref()?.index_at(self.media_pos()?, self.media_duration)
+    }
+
+    fn lyric_line(&self, offset: isize) -> Option<String> {
+        let l = self.lyrics.as_ref()?;
+        let i = self.lyric_index().map(|i| i as isize).unwrap_or(-1) + offset;
+        if i < 0 {
+            return Some(String::new());
+        }
+        Some(l.lines.get(i as usize).map(|(_, t)| t.clone()).unwrap_or_default())
     }
 
     pub fn history(&self, key: &str) -> Option<&VecDeque<f32>> {
@@ -205,15 +265,36 @@ impl TelemetryHub {
     }
 }
 
-pub fn spawn(hub: Arc<TelemetryHub>, disk_mount: String, gpu_backend: String, weather_at: Option<(f64, f64)>) -> std::thread::JoinHandle<()> {
-    let weather = weather_at.map(|(lat, lon)| weather::spawn(lat, lon));
+/// Opções da coleta.
+#[derive(Clone, Debug)]
+pub struct Options {
+    pub disk_mount: String,
+    pub gpu_backend: String,
+    pub weather_at: Option<(f64, f64)>,
+    /// Busca letras no LRCLIB quando a faixa muda.
+    pub lyrics: bool,
+}
+
+impl Options {
+    pub fn from_config(c: &crate::config::Config) -> Self {
+        Self {
+            disk_mount: c.disk_mount.clone(),
+            gpu_backend: c.gpu_backend.clone(),
+            weather_at: c.weather_lat.zip(c.weather_lon),
+            lyrics: c.lyrics,
+        }
+    }
+}
+
+pub fn spawn(hub: Arc<TelemetryHub>, opts: Options) -> std::thread::JoinHandle<()> {
+    let weather = opts.weather_at.map(|(lat, lon)| weather::spawn(lat, lon));
     std::thread::Builder::new()
         .name("telemetry".into())
-        .spawn(move || run(hub, disk_mount, gpu_backend, weather))
+        .spawn(move || run(hub, opts.disk_mount, opts.gpu_backend, weather, opts.lyrics))
         .expect("thread de telemetria")
 }
 
-fn run(hub: Arc<TelemetryHub>, disk_mount: String, gpu_backend: String, weather: Option<weather::WeatherCell>) {
+fn run(hub: Arc<TelemetryHub>, disk_mount: String, gpu_backend: String, weather: Option<weather::WeatherCell>, lyrics: bool) {
     // COM (MTA) para WMI e WinRT nesta thread.
     let com = wmi::COMLibrary::new().ok();
     let (mut stat_since, mut stat_cpu) = (Instant::now(), crate::driver::thread_cpu_time());
@@ -224,7 +305,7 @@ fn run(hub: Arc<TelemetryHub>, disk_mount: String, gpu_backend: String, weather:
     let mut gpu = gpu::GpuCollector::new(pdh.as_ref(), &gpu_backend);
     let mut mem = memory::MemoryCollector::new(pdh.as_ref(), disk_mount);
     let mut net = network::NetworkCollector::new();
-    let mut media = media::MediaCollector::new();
+    let mut media = media::MediaCollector::new(lyrics);
 
     let mut snap = Snapshot::default();
     let period = Duration::from_secs(1);

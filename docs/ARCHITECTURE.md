@@ -16,7 +16,8 @@ kalkan-rs/
 │   │   ├── hwmon.rs        LibreHardwareMonitor/OpenHardwareMonitor via WMI
 │   │   ├── memory.rs       RAM, swap, disco (ocupação + PDH de throughput)
 │   │   ├── network.rs      download/upload
-│   │   ├── media.rs        WinRT GlobalSystemMediaTransportControlsSessionManager
+│   │   ├── media.rs        WinRT media session: faixa, posição, capa + paleta extraída, modo demo
+│   │   ├── lyrics.rs       LRCLIB (thread própria, cache) + parser LRC
 │   │   ├── weather.rs      Open-Meteo via WinRT HttpClient
 │   │   └── pdh.rs          wrapper do Performance Data Helper
 │   ├── media/
@@ -57,11 +58,12 @@ kalkan-rs/
 | **render** | Acorda só quando precisa: novo quadro de vídeo/GIF, telemetria nova, mudança de segundo, animação ou hot-reload |
 | **driver** | Consome sempre o quadro mais recente; reenvia a cada 1 s como keep-alive, reconecta quando o cabo volta e descarta quadros idênticos |
 | **decoders** | Vídeo e animações em threads próprias, com fila de pré-buffer |
+| **lyrics** | Busca a letra da faixa nova no LRCLIB (HttpClient do WinRT) e guarda em cache |
 
 ## Pipeline de renderização
 
 1. **Fundo:** o fundo (cor, imagem, quadro de GIF ou de vídeo) é copiado para o canvas e, se pedido, escurecido.
-2. **Camada de widgets (overlay):** fica em cache, em ARGB pré-multiplicado. Só é redesenhada quando os dados ou o relógio mudam, ou quando há animação. Assim, um vídeo a 24 fps apenas recompõe o cache sobre cada quadro.
+2. **Camada de widgets (overlay):** as camadas estáticas da base da pilha vêm de um cache rasterizado uma vez; as demais fica em cache, em ARGB pré-multiplicado. Só é redesenhada quando os dados ou o relógio mudam, ou quando há animação. Assim, um vídeo a 24 fps apenas recompõe o cache sobre cada quadro.
 3. **Composição** do overlay sobre o fundo.
 4. **Conversão** para RGB565 big-endian já com a orientação (espelhamento) aplicada, em ~8 µs com AVX2.
 5. **Publicação** no triple buffer, sem nunca esperar pelo USB.

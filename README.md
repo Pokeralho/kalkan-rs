@@ -26,13 +26,18 @@ Substitui o software oficial (WPF, 400 MB+ de RAM) por um serviço nativo de ~22
 | 🎞️ **Mídia** | MP4/H.264/HEVC via Media Foundation, GIF/WebP/APNG com cache, imagens estáticas. |
 | 📊 **Telemetria completa** | CPU (uso por núcleo, clock, temperatura), GPU (NVIDIA/AMD/Intel), RAM, disco, rede, música tocando e clima. |
 | 🔁 **Hot-reload** | Salvou o tema, o display atualiza na hora. O `config.toml` também é aplicado ao vivo. |
+| 🎵 **Modo música** | Capa, player com tempo/duração e **letra sincronizada** (karaokê), com fundo e cores que se adaptam à capa. Entra sozinho quando você dá play. |
 | 🧊 **Tela de inicialização Dark Hub** | Floco animado com brilho, e você pode editar ou trocar como qualquer outro tema. |
 
 ## 🖼️ Galeria
 
-| Dark Hub | Cyberpunk | Minimal Clean | Neon Shapes |
-|:-:|:-:|:-:|:-:|
-| ![](docs/img/theme_dark_hub.png) | ![](docs/img/cyberpunk.gif) | ![](docs/img/theme_minimal_stats.png) | ![](docs/img/theme_neon_shapes.png) |
+| Now Playing | Dark Hub | Cyberpunk |
+|:-:|:-:|:-:|
+| ![](docs/img/now_playing.gif) | ![](docs/img/theme_dark_hub.png) | ![](docs/img/cyberpunk.gif) |
+| **Minimal Clean** | **Neon Shapes** | **Tela de inicialização** |
+| ![](docs/img/theme_minimal_stats.png) | ![](docs/img/theme_neon_shapes.png) | ![](docs/img/theme_splash.png) |
+
+<sub>Imagens do Now Playing geradas com `KALKAN_DEMO_MEDIA=1` (faixa, capa e letra fictícias).</sub>
 
 <p align="center"><img src="docs/img/studio.png" width="900" alt="Kalkan Studio"></p>
 
@@ -85,6 +90,9 @@ O `config.toml` é criado ao lado do executável. Copie [`config.example.toml`](
 | `rotation` | `0` | Rotação de hardware: 0/90/180/270 |
 | `flip_vertical` / `flip_horizontal` | `true` / `true` | Orientação do painel (180° na montagem padrão) |
 | `splash` / `splash_ms` | `true` / `2600` | Tela de inicialização e duração em ms |
+| `music_mode` / `music_theme` | `true` / `"now_playing"` | Troca para o tema de música enquanto algo toca |
+| `music_return_s` | `8` | Segundos pausado até voltar ao tema normal |
+| `lyrics` | `true` | Busca letras sincronizadas no [LRCLIB](https://lrclib.net) (envia título/artista) |
 | `gpu_backend` | `"auto"` | `auto` (D3DKMT, leve), `nvml` (watts e fan %, +19 MB de RAM) ou `pdh` |
 | `weather_lat` / `weather_lon` | — | Liga o clima (Open-Meteo, sem chave de API) |
 
@@ -135,7 +143,9 @@ metric = "gpu_usage"                # enche conforme o uso
 animation = "spin"
 ```
 
-**Tipos de camada:** `text`, `radial_gauge`, `bar`, `sparkline`, `cores`, `shape`, `rect` e `image`.
+**Tipos de camada:** `text`, `radial_gauge`, `bar`, `sparkline`, `cores`, `shape`, `rect`, `image`, `album_art` e `lyrics`.
+
+**Música:** fundo `type = "album"` (capa desfocada), cores `$album_vibrant`, `$album_light`, `$album_dark`, `$album_dominant` (extraídas da capa) e placeholders `{media_position_str}`, `{media_duration_str}` e `{lyrics_line}`.
 
 **Comportamentos disponíveis em qualquer camada:** `visible_if`, `color_rules`, `animation` (`pulse`, `blink`, `spin`, `marquee`, `fade_in`, `slide_up`), `glow`, `layer_opacity`.
 
@@ -149,6 +159,7 @@ Medições em um Ryzen de 16 threads com uma RTX 5060:
 |---|---|---|
 | Tema estático (relógio, telemetria) | ~0,04% | ~19 MB |
 | Fundo animado, 24 fps | ~0,3–0,45% | ~22 MB |
+| Modo música (capa, player, letra) | ~0,1% | ~23 MB |
 | Conversão de um quadro para RGB565 (AVX2) | ~8 µs | — |
 
 Cerca de 85% da CPU gasta em fundos animados é do driver USB do Windows (`usbser.sys`), e esse custo é proporcional aos bytes enviados. Por isso o FPS é configurável e quadros repetidos não são reenviados. Os detalhes estão em [docs/PROTOCOL.md](docs/PROTOCOL.md).

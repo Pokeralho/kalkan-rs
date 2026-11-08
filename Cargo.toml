@@ -1,6 +1,6 @@
 [package]
 name = "kalkan-rs"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Painel e driver de alta performance para o display AIO KALKAN / GAMDIAS ZEUS CAST (320x240 RGB565)"
 license = "MIT"
@@ -48,6 +48,9 @@ features = [
     "Foundation",
     "Media_Control",
     "Web_Http",
+    "Web_Http_Headers",
+    "Storage_Streams",
+    "Win32_System_SystemInformation",
     "Win32_Foundation",
     "Win32_System_Com",
     "Win32_System_Com_StructuredStorage",

@@ -26,7 +26,7 @@ fn err<E: std::fmt::Display>(e: E) -> String {
 }
 
 /// Ordem por tipo usada pelo motor ao empatar em `z` (fundo → frente).
-const TYPES: &[&str] = &["shape", "rect", "image", "sparkline", "cores", "bar", "radial_gauge", "text"];
+const TYPES: &[&str] = &["shape", "rect", "image", "sparkline", "album_art", "cores", "bar", "radial_gauge", "lyrics", "text"];
 
 /// Id especial que aponta para a pasta da tela de inicialização.
 const SPLASH_ID: &str = "@splash";
@@ -38,11 +38,13 @@ const NUMERIC_KEYS: &[&str] = &[
     "ram_used", "ram_total", "ram_used_gb", "ram_total_gb", "ram_pct", "swap_used", "swap_pct",
     "disk_pct", "disk_used_gb", "disk_total_gb", "disk_read_mb", "disk_write_mb",
     "net_down_kb", "net_up_kb", "net_down_mb", "net_up_mb",
-    "weather_temp", "weather_humidity", "weather_wind", "media_playing",
+    "weather_temp", "weather_humidity", "weather_wind", "media_playing", "media_active",
+    "media_position", "media_duration", "media_remaining", "media_progress", "lyrics_available", "album_art_available",
 ];
 const TEXT_KEYS: &[&str] = &[
     "cpu_name", "gpu_name", "net_down", "net_up", "disk_read", "disk_write",
     "media_title", "media_artist", "media_album", "media_state", "media_icon", "weather_desc",
+    "media_position_str", "media_duration_str", "media_remaining_str", "lyrics_line", "lyrics_next", "lyrics_prev",
 ];
 
 struct Studio {
@@ -416,7 +418,7 @@ fn daemon_status() -> bool {
 fn main() {
     let cfg = Config::load();
     let hub = Arc::new(TelemetryHub::default());
-    telemetry::spawn(hub.clone(), cfg.disk_mount.clone(), cfg.gpu_backend.clone(), cfg.weather_lat.zip(cfg.weather_lon));
+    telemetry::spawn(hub.clone(), telemetry::Options::from_config(&cfg));
 
     let state = AppState {
         studio: Mutex::new(Studio {

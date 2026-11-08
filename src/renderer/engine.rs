@@ -46,11 +46,18 @@ pub struct BackgroundDef {
     pub fit: Fit,
     /// Escurece o fundo (0..1) para aumentar o contraste dos widgets.
     pub dim: f32,
+    /// Desfoque do fundo (px). `album` usa 14 por padrão.
+    #[serde(skip_serializing_if = "is_zero_f")]
+    pub blur: f32,
+}
+
+fn is_zero_f(v: &f32) -> bool {
+    *v == 0.0
 }
 
 impl Default for BackgroundDef {
     fn default() -> Self {
-        Self { kind: "auto".into(), path: None, color: d_black(), fit: Fit::Cover, dim: 0.0 }
+        Self { kind: "auto".into(), path: None, color: d_black(), fit: Fit::Cover, dim: 0.0, blur: 0.0 }
     }
 }
 
@@ -63,6 +70,23 @@ pub struct ThemeFile {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     pub palette: BTreeMap<String, String>,
     pub widgets: WidgetDefs,
+}
+
+/// O tema referencia cores da capa?
+fn uses_album(file: &ThemeFile) -> bool {
+    serde_json::to_string(&file.widgets).is_ok_and(|s| s.contains("$album"))
+}
+
+/// Acrescenta `album_dominant`, `album_vibrant`, `album_dark`, `album_light`
+/// (e `album`, atalho para a vibrante) à paleta.
+fn with_album(base: &Palette, p: Option<crate::telemetry::media::AlbumPalette>) -> Palette {
+    let p = p.unwrap_or_default();
+    let c = |v: [u8; 3]| Color { r: v[0], g: v[1], b: v[2], a: 255 };
+    let mut out = base.clone();
+    for (k, v) in [("album_dominant", p.dominant), ("album_vibrant", p.vibrant), ("album_dark", p.dark), ("album_light", p.light), ("album", p.vibrant)] {
+        out.entry(k.to_string()).or_insert(c(v));
+    }
+    out
 }
 
 fn build_palette(p: &BTreeMap<String, String>) -> Palette {
@@ -84,6 +108,12 @@ fn build_palette(p: &BTreeMap<String, String>) -> Palette {
 
 pub struct Theme {
     palette: Palette,
+    /// Paleta do arquivo (sem as cores da capa).
+    base_palette: Palette,
+    defs: WidgetDefs,
+    /// O tema usa cores `$album_*`: reconstruir camadas quando a capa muda.
+    uses_album: bool,
+    album_id: Option<u64>,
     default_font: Option<String>,
     start: Instant,
     scratch: Canvas,
@@ -93,6 +123,8 @@ pub struct Theme {
     bg_def: BackgroundDef,
     /// Camada de widgets em cache (ARGB pré-multiplicado).
     overlay: Canvas,
+    /// Camadas estáticas da base da pilha, rasterizadas uma única vez.
+    static_base: Option<(usize, Canvas)>,
     pub bg: Background,
     pub dim: f32,
     pub widgets: Vec<Widget>,
@@ -116,7 +148,7 @@ impl Theme {
     fn load_background(def: &BackgroundDef, dir: &Path, cache_bytes: usize) -> Result<Background> {
         let bg_color = Color::parse(&def.color).unwrap_or(Color::BLACK).rgb();
         let bg_path = def.path.as_ref().filter(|p| !p.is_empty()).map(|p| dir.join(p));
-        Background::load(&def.kind, bg_path.as_deref(), bg_color, def.fit, cache_bytes).with_context(|| "carregando background")
+        Background::load(&def.kind, bg_path.as_deref(), bg_color, def.fit, cache_bytes, def.blur).with_context(|| "carregando background")
     }
 
     /// Constrói o tema a partir de uma definição em memória (usado pelo editor).
@@ -124,7 +156,8 @@ impl Theme {
         let bg = Self::load_background(&file.background, dir, cache_bytes)?;
 
         let mut fonts = FontStore::new(dir, fonts_dir);
-        let palette = build_palette(&file.palette);
+        let base_palette = build_palette(&file.palette);
+        let palette = with_album(&base_palette, None);
         let widgets = Widget::build_all(&file.widgets, &mut fonts, dir, &palette, file.meta.font.as_deref());
         let name = if file.meta.name.is_empty() {
             dir.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
@@ -134,6 +167,10 @@ impl Theme {
         log::info!("tema '{name}' carregado: {} widgets", widgets.len());
         Ok(Self {
             palette,
+            base_palette,
+            defs: file.widgets.clone(),
+            uses_album: uses_album(file),
+            album_id: None,
             default_font: file.meta.font.clone(),
             start: Instant::now(),
             scratch: Canvas::new(),
@@ -142,6 +179,7 @@ impl Theme {
             cache_bytes,
             bg_def: file.background.clone(),
             overlay: Canvas::new(),
+            static_base: None,
             uses_seconds: widgets.iter().any(Widget::uses_seconds),
             uses_time: widgets.iter().any(Widget::uses_time),
             bg,
@@ -186,6 +224,10 @@ impl Theme {
         let widgets = Widget::build_all(&defs, &mut fonts, dir, &Palette::new(), None);
         Self {
             palette: Palette::new(),
+            base_palette: Palette::new(),
+            defs: WidgetDefs::default(),
+            uses_album: false,
+            album_id: None,
             default_font: None,
             start: Instant::now(),
             scratch: Canvas::new(),
@@ -194,6 +236,7 @@ impl Theme {
             cache_bytes: 0,
             bg_def: BackgroundDef::default(),
             overlay: Canvas::new(),
+            static_base: None,
             bg: Background::Solid(0x1A0000),
             dim: 0.0,
             widgets,
@@ -206,7 +249,11 @@ impl Theme {
 
     /// Substitui o fundo, recarregando a mídia apenas se a definição mudou.
     pub fn set_background(&mut self, def: &BackgroundDef) -> Result<()> {
-        let media_changed = def.kind != self.bg_def.kind || def.path != self.bg_def.path || def.fit != self.bg_def.fit || def.color != self.bg_def.color;
+        let media_changed = def.kind != self.bg_def.kind
+            || def.path != self.bg_def.path
+            || def.fit != self.bg_def.fit
+            || def.color != self.bg_def.color
+            || def.blur != self.bg_def.blur;
         if media_changed {
             self.bg = Self::load_background(def, &self.dir, self.cache_bytes)?;
         }
@@ -218,7 +265,10 @@ impl Theme {
     /// Aplica uma definição completa (editor): fundo, paleta, fonte padrão e camadas.
     pub fn apply(&mut self, file: &ThemeFile) -> Result<()> {
         self.set_background(&file.background)?;
-        self.palette = build_palette(&file.palette);
+        self.base_palette = build_palette(&file.palette);
+        self.uses_album = uses_album(file);
+        self.album_id = None;
+        self.palette = with_album(&self.base_palette, None);
         self.default_font = file.meta.font.clone();
         self.fps = file.meta.fps;
         self.set_widgets(&file.widgets);
@@ -233,7 +283,16 @@ impl Theme {
     /// Reconstrói todos os widgets (o fundo é preservado).
     pub fn set_widgets(&mut self, defs: &WidgetDefs) {
         let mut fonts = FontStore::new(&self.dir, &self.fonts_dir);
-        self.widgets = Widget::build_all(defs, &mut fonts, &self.dir, &self.palette, self.default_font.as_deref());
+        let mut fresh = Widget::build_all(defs, &mut fonts, &self.dir, &self.palette, self.default_font.as_deref());
+        // Mesma definição (ex.: só a paleta mudou): preserva animações e caches.
+        if fresh.len() == self.widgets.len() {
+            for (n, o) in fresh.iter_mut().zip(self.widgets.drain(..)) {
+                n.adopt_state(o);
+            }
+        }
+        self.widgets = fresh;
+        self.defs = defs.clone();
+        self.static_base = None;
         self.fallbacks = fonts.fallbacks().to_vec();
         self.uses_seconds = self.widgets.iter().any(Widget::uses_seconds);
         self.uses_time = self.widgets.iter().any(Widget::uses_time);
@@ -246,11 +305,33 @@ impl Theme {
 
     /// Redesenha a camada de widgets. Retorna `true` se algum widget ainda anima.
     pub fn update_overlay(&mut self, snap: &Snapshot, dt: f32) -> bool {
+        // Capa da música: fundo desfocado e paleta $album_*.
+        if let Background::Album(a) = &mut self.bg {
+            a.sync(snap.media_art.as_deref());
+        }
+        let art_id = snap.media_art.as_ref().map(|a| a.id);
+        if self.uses_album && art_id != self.album_id {
+            self.album_id = art_id;
+            self.palette = with_album(&self.base_palette, snap.media_art.as_ref().map(|a| a.palette));
+            let defs = self.defs.clone();
+            self.set_widgets(&defs);
+        }
         let env = Env { snap, now: Local::now(), t: self.start.elapsed().as_secs_f32() };
         let ctx = FrameCtx { env, dt, fallbacks: &self.fallbacks };
-        self.overlay.clear(0);
+        // Prefixo estático (painéis, véus, formas fixas) vem do cache.
+        if self.static_base.is_none() {
+            let n = self.widgets.iter().take_while(|w| w.is_static()).count();
+            let mut base = Canvas::new();
+            for w in &mut self.widgets[..n] {
+                w.draw(&mut base, &mut self.scratch, &ctx);
+            }
+            self.static_base = Some((n, base));
+        }
+        let (n, base) = self.static_base.as_ref().unwrap();
+        let n = *n;
+        self.overlay.pixels.copy_from_slice(&base.pixels);
         let mut animating = false;
-        for w in &mut self.widgets {
+        for w in &mut self.widgets[n..] {
             animating |= w.draw(&mut self.overlay, &mut self.scratch, &ctx);
         }
         animating
@@ -291,6 +372,8 @@ pub enum RenderCmd {
     Silent(bool),
     Orientation(Orientation),
     MaxFps(u32),
+    /// Modo música: (pasta do tema de música, tempo pausado até voltar).
+    Music(Option<(PathBuf, Duration)>),
     Quit,
 }
 
@@ -303,6 +386,8 @@ pub struct RenderSettings {
     pub orientation: Orientation,
     /// Tela de inicialização: (pasta do tema, duração).
     pub splash: Option<(PathBuf, Duration)>,
+    /// Modo música automático: (pasta do tema de música, tempo pausado até voltar).
+    pub music: Option<(PathBuf, Duration)>,
 }
 
 fn load_or_error(dir: &Path, s: &RenderSettings) -> Theme {
@@ -351,7 +436,13 @@ pub fn run_render_thread(
         },
         _ => load_or_error(&settings.theme_dir, &settings),
     };
-    let mut _watcher = make_watcher(&settings.theme_dir, &settings.fonts_dir);
+    // Observa a pasta de temas inteira (cobre o tema ativo e o de música).
+    let themes_root = settings.theme_dir.parent().map(Path::to_path_buf).unwrap_or_else(|| settings.theme_dir.clone());
+    let _watcher = make_watcher(&themes_root, &settings.fonts_dir);
+    let mut in_music = false;
+    let mut paused_since: Option<Instant> = None;
+    // Escolha manual de tema durante a música: respeita até a música parar.
+    let mut music_suppressed = false;
 
     let mut canvas = Canvas::new();
     let mut back: Frame565 = blank_frame();
@@ -396,10 +487,19 @@ pub fn run_render_thread(
                 Ok(RenderCmd::Quit) | Err(_) => return,
                 Ok(RenderCmd::SwitchTheme(dir)) => {
                     splash_until = None;
+                    music_suppressed = in_music || hub.get().media_playing;
+                    in_music = false;
                     settings.theme_dir = dir;
                     theme = load_or_error(&settings.theme_dir, &settings);
-                    _watcher = make_watcher(&settings.theme_dir, &settings.fonts_dir);
                     dirty = true;
+                }
+                Ok(RenderCmd::Music(m)) => {
+                    settings.music = m;
+                    if settings.music.is_none() && in_music {
+                        in_music = false;
+                        theme = load_or_error(&settings.theme_dir, &settings);
+                        dirty = true;
+                    }
                 }
                 Ok(RenderCmd::Reload) => reload_at = Some(Instant::now()),
                 Ok(RenderCmd::MaxFps(f)) => {
@@ -432,8 +532,12 @@ pub fn run_render_thread(
         }
         if reload_at.is_some_and(|t| now >= t) && splash_until.is_none() {
             reload_at = None;
-            log::info!("hot-reload: {}", settings.theme_dir.display());
-            theme = load_or_error(&settings.theme_dir, &settings);
+            let dir = match (&settings.music, in_music) {
+                (Some((m, _)), true) => m.clone(),
+                _ => settings.theme_dir.clone(),
+            };
+            log::info!("hot-reload: {}", dir.display());
+            theme = load_or_error(&dir, &settings);
             dirty = true;
         }
 
@@ -452,6 +556,30 @@ pub fn run_render_thread(
         if ver != last_ver {
             last_ver = ver;
             dirty = true;
+            // Modo música: entra ao tocar, volta após `return_after` pausado.
+            if let (Some((mdir, ret)), None) = (settings.music.clone(), splash_until) {
+                let playing = hub.get().media_playing;
+                let is_music_theme = mdir == settings.theme_dir;
+                if !playing && !in_music {
+                    music_suppressed = false;
+                }
+                if playing {
+                    paused_since = None;
+                    if !in_music && !is_music_theme && !music_suppressed && mdir.join("theme.toml").is_file() {
+                        log::info!("modo música: {}", mdir.display());
+                        in_music = true;
+                        theme = load_or_error(&mdir, &settings);
+                    }
+                } else if in_music {
+                    let since = *paused_since.get_or_insert(now);
+                    if now.duration_since(since) >= ret {
+                        log::info!("modo música: voltando ao tema ativo");
+                        in_music = false;
+                        paused_since = None;
+                        theme = load_or_error(&settings.theme_dir, &settings);
+                    }
+                }
+            }
         }
         if theme.uses_time {
             let t = Local::now();
@@ -535,6 +663,10 @@ pub fn preview(theme_dir: &Path, fonts_dir: &Path, out: &Path, hub: Arc<Telemetr
     }
     theme.bg.advance(Instant::now());
     let snap = hub.get();
+    // Deixa transições (crossfade da capa, fundo do álbum) terminarem antes de capturar.
+    theme.update_overlay(&snap, 10.0);
+    std::thread::sleep(Duration::from_millis(900));
+    theme.bg.advance(Instant::now());
 
     // Mede o custo de composição + conversão.
     let n = 60;

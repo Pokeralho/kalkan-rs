@@ -1,0 +1,161 @@
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  NOW PLAYING — capa, player e letra sincronizada                   ║
+# ╚══════════════════════════════════════════════════════════════════╝
+# Fundo = capa desfocada (troca com crossfade). As cores $album_* vêm da
+# capa atual: o tema inteiro se adapta a cada música.
+# Usado pelo "modo música automático" (config: music_mode / music_theme).
+
+[meta]
+name = "Now Playing"
+author = "Dark Hub"
+fps = 24
+font = "segoeui.ttf"
+
+[background]
+type = "album"
+color = "#0B0B12"   # usado enquanto não há capa
+blur = 16
+dim = 0.42
+
+# Véu escuro de cima para baixo para dar contraste à letra
+[[widgets.shape]]
+kind = "rect"
+x = 0
+y = 0
+width = 320
+height = 240
+fill_gradient = ["#00000000", "#000000B0"]
+gradient_angle = 90
+z = 0
+
+# ── Capa ──
+[[widgets.album_art]]
+x = 14
+y = 16
+width = 104
+height = 104
+radius = 10
+placeholder = "#FFFFFF14"
+z = 2
+glow = "#000000B0"
+glow_radius = 7
+visible_if = "media_active == 1"
+
+# ── Informações ──
+[[widgets.text]]
+text = "{media_title}"
+font = "seguisb.ttf"
+size = 18
+x = 130
+y = 18
+max_width = 178
+color_hex = "#FFFFFF"
+shadow = "#00000088"
+z = 3
+animation = "marquee"
+animation_speed = 0.7
+visible_if = "media_active == 1"
+
+[[widgets.text]]
+text = "{media_artist}"
+size = 13
+x = 130
+y = 45
+max_width = 178
+color_hex = "$album_light"
+z = 3
+visible_if = "media_active == 1"
+
+[[widgets.text]]
+text = "{media_album}"
+size = 11
+x = 130
+y = 64
+max_width = 178
+color_hex = "#FFFFFF80"
+z = 3
+visible_if = "media_active == 1"
+
+# ── Player ──
+[[widgets.text]]
+text = "{media_icon}"
+size = 12
+x = 130
+y = 92
+color_hex = "$album_vibrant"
+z = 3
+visible_if = "media_active == 1"
+
+[[widgets.text]]
+text = "{media_position_str}"
+size = 11
+x = 146
+y = 93
+color_hex = "#FFFFFFCC"
+z = 3
+visible_if = "media_active == 1"
+
+[[widgets.text]]
+text = "{media_duration_str}"
+size = 11
+x = 308
+y = 93
+align = "right"
+color_hex = "#FFFFFF88"
+z = 3
+visible_if = "media_active == 1"
+
+[[widgets.bar]]
+metric = "media_progress"
+x = 130
+y = 112
+width = 178
+height = 4
+radius = 2
+color_hex = "$album_vibrant"
+track_color = "#FFFFFF26"
+z = 3
+glow = "$album_vibrant/45"
+glow_radius = 2
+visible_if = "media_active == 1"
+
+# ── Letra ──
+[[widgets.lyrics]]
+x = 12
+y = 132
+width = 296
+height = 100
+font = "seguisb.ttf"
+size = 16
+size_other = 12.5
+color_hex = "#FFFFFF"
+color_dim = "#FFFFFF8C"
+lines = 3
+line_gap = 7
+empty_text = "♪"
+z = 3
+visible_if = "media_active == 1"
+
+# ── Nada tocando ──
+[[widgets.text]]
+text = "{time:%H:%M}"
+font = "segoeuil.ttf"
+size = 64
+x = 160
+y = 104
+align = "center"
+valign = "middle"
+color_hex = "#FFFFFF"
+z = 3
+visible_if = "media_active == 0"
+
+[[widgets.text]]
+text = "nada tocando"
+size = 13
+x = 160
+y = 150
+align = "center"
+color_hex = "#FFFFFF66"
+letter_spacing = 2
+z = 3
+visible_if = "media_active == 0"

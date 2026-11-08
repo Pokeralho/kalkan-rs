@@ -10,6 +10,7 @@ use ab_glyph::{point, Font, FontArc, PxScale, ScaleFont};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::path::{Path, PathBuf};
 
 // ───────────────────────────── Fontes ─────────────────────────────
@@ -219,6 +220,7 @@ pub struct Template {
 pub const TEXT_KEYS: &[&str] = &[
     "cpu_name", "gpu_name", "media_title", "media_artist", "media_album", "media_state", "media_icon",
     "net_down", "net_up", "disk_read", "disk_write", "weather_desc",
+    "media_position_str", "media_duration_str", "media_remaining_str", "lyrics_line", "lyrics_next", "lyrics_prev",
 ];
 
 impl Template {
@@ -651,6 +653,10 @@ pub struct WidgetDefs {
     pub shape: Vec<ShapeDef>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub cores: Vec<CoresDef>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub album_art: Vec<AlbumArtDef>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub lyrics: Vec<LyricsDef>,
 }
 
 // ───────────────────────────── Cores e paleta ─────────────────────────────
@@ -665,8 +671,16 @@ thread_local! {
 pub fn color(s: &str) -> Color {
     let s = s.trim();
     if let Some(name) = s.strip_prefix('$') {
+        // `$nome/40` = cor da paleta com 40% de opacidade.
+        let (name, pct) = match name.split_once('/') {
+            Some((n, a)) => (n, a.trim().trim_end_matches('%').parse::<f32>().ok()),
+            None => (name, None),
+        };
         if let Some(c) = PALETTE.with(|p| p.borrow().get(name).copied()) {
-            return c;
+            return match pct {
+                Some(p) => c.with_alpha_mul(p / 100.0),
+                None => c,
+            };
         }
         log::warn!("cor '${name}' não existe na paleta");
         return Color::WHITE;
@@ -859,6 +873,8 @@ enum Kind {
     Rect(RectWidget),
     Shape(ShapeWidget),
     Cores(CoresWidget),
+    AlbumArt(AlbumArtWidget),
+    Lyrics(LyricsWidget),
 }
 
 /// Uma camada do tema: conteúdo + comportamentos.
@@ -907,6 +923,19 @@ impl Widget {
         for d in &defs.sparkline {
             push(Kind::Sparkline(SparklineWidget { color: color(&d.color_hex), def: d.clone(), pts: Vec::new() }), &d.behavior, d.z);
         }
+        for d in &defs.album_art {
+            push(
+                Kind::AlbumArt(AlbumArtWidget {
+                    placeholder: d.placeholder.as_deref().map(color),
+                    def: d.clone(),
+                    cur: None,
+                    prev: None,
+                    fade_start: -10.0,
+                }),
+                &d.behavior,
+                d.z,
+            );
+        }
         for d in &defs.cores {
             push(
                 Kind::Cores(CoresWidget {
@@ -941,6 +970,25 @@ impl Widget {
                     track: color(&d.track_color),
                     def: d.clone(),
                     value: Smoothed::default(),
+                }),
+                &d.behavior,
+                d.z,
+            );
+        }
+        for d in &defs.lyrics {
+            let Some(font) = fonts.get(d.font.as_deref().or(default_font)) else { continue };
+            push(
+                Kind::Lyrics(LyricsWidget {
+                    font,
+                    color: color(&d.color_hex),
+                    dim: color(&d.color_dim),
+                    empty: Template::parse(&d.empty_text),
+                    def: d.clone(),
+                    masks: HashMap::new(),
+                    lyrics_ptr: 0,
+                    last_index: None,
+                    scroll_from: 0.0,
+                    scroll_start: 0.0,
                 }),
                 &d.behavior,
                 d.z,
@@ -987,7 +1035,8 @@ impl Widget {
     pub fn draw(&mut self, c: &mut Canvas, scratch: &mut Canvas, ctx: &FrameCtx) -> bool {
         let env = &ctx.env;
         self.visible = self.beh.visible.as_ref().is_none_or(|e| env.eval(e).is_some_and(|v| v != 0.0));
-        let continuous = self.beh.anim != Anim::None
+        // Letreiro só anima quando o texto realmente não cabe (o próprio texto informa).
+        let continuous = !matches!(self.beh.anim, Anim::None | Anim::Marquee)
             && !(matches!(self.beh.anim, Anim::FadeIn | Anim::SlideUp) && env.t * self.beh.speed > 1.0);
         if !self.visible {
             return continuous;
@@ -1034,6 +1083,39 @@ impl Widget {
         anim_kind || continuous
     }
 
+    /// Saída independente de dados/tempo: pode ser rasterizada uma vez e reutilizada.
+    pub fn is_static(&self) -> bool {
+        let content = match &self.kind {
+            Kind::Rect(_) | Kind::Image(_) => true,
+            Kind::Shape(s) => s.metric.is_none(),
+            _ => false,
+        };
+        content && self.beh.anim == Anim::None && !self.beh.is_dynamic()
+    }
+
+    /// Herda o estado de runtime (animações, caches) de uma camada equivalente.
+    pub fn adopt_state(&mut self, old: Widget) {
+        match (&mut self.kind, old.kind) {
+            (Kind::AlbumArt(n), Kind::AlbumArt(o)) => {
+                n.cur = o.cur;
+                n.prev = o.prev;
+                n.fade_start = o.fade_start;
+            }
+            (Kind::Lyrics(n), Kind::Lyrics(o)) => {
+                n.masks = o.masks;
+                n.lyrics_ptr = o.lyrics_ptr;
+                n.last_index = o.last_index;
+                n.scroll_from = o.scroll_from;
+                n.scroll_start = o.scroll_start;
+            }
+            (Kind::Gauge(n), Kind::Gauge(o)) => n.value = o.value,
+            (Kind::Bar(n), Kind::Bar(o)) => n.value = o.value,
+            (Kind::Shape(n), Kind::Shape(o)) => n.value = o.value,
+            (Kind::Cores(n), Kind::Cores(o)) => n.values = o.values,
+            _ => {}
+        }
+    }
+
     /// Caixa ocupada pela camada (após o último desenho), para o editor visual.
     pub fn bounds(&self) -> [f32; 4] {
         match &self.kind {
@@ -1042,6 +1124,8 @@ impl Widget {
             Kind::Bar(w) => [w.def.x, w.def.y, w.def.width, w.def.height],
             Kind::Sparkline(w) => [w.def.x, w.def.y, w.def.width, w.def.height],
             Kind::Cores(w) => [w.def.x, w.def.y, w.def.width, w.def.height],
+            Kind::AlbumArt(w) => [w.def.x, w.def.y, w.def.width, w.def.height],
+            Kind::Lyrics(w) => [w.def.x, w.def.y, w.def.width, w.def.height],
             Kind::Image(w) => [w.def.x, w.def.y, w.w as f32, w.h as f32],
             Kind::Gauge(w) => {
                 let r = w.def.radius + w.def.stroke_width / 2.0;
@@ -1068,10 +1152,7 @@ impl Kind {
                 c.blit_rgba(&w.px, w.w, w.h, w.def.x.round() as i32, w.def.y.round() as i32, w.def.opacity);
                 false
             }
-            Kind::Text(w) => {
-                w.draw(c, ctx, ov);
-                false
-            }
+            Kind::Text(w) => w.draw(c, ctx, ov),
             Kind::Gauge(w) => {
                 let d = &w.def;
                 let target = norm(w.metric.as_ref().and_then(|e| env.eval(e)), d.min, d.max);
@@ -1109,12 +1190,15 @@ impl Kind {
             }
             Kind::Shape(w) => w.draw(c, ctx, ov),
             Kind::Cores(w) => w.draw(c, ctx, ov),
+            Kind::AlbumArt(w) => w.draw(c, ctx),
+            Kind::Lyrics(w) => w.draw(c, ctx, ov),
         }
     }
 }
 
 impl TextWidget {
-    fn draw(&mut self, c: &mut Canvas, ctx: &FrameCtx, ov: &Overrides) {
+    /// Retorna `true` enquanto o letreiro está rolando.
+    fn draw(&mut self, c: &mut Canvas, ctx: &FrameCtx, ov: &Overrides) -> bool {
         let d = &self.def;
         let mut s = self.tpl.render(&ctx.env);
         if d.uppercase {
@@ -1190,6 +1274,7 @@ impl TextWidget {
                 None => c.draw_mask_ex(&m.data, m.w, m.h, ox, y, clip, |_| fill),
             }
         }
+        scrolling
     }
 }
 
@@ -1400,6 +1485,271 @@ impl ShapeWidget {
             }
         }
         anim
+    }
+}
+
+
+// ───────────────────────── Música: capa e letra ─────────────────────────
+
+fn d_lines() -> u32 { 3 }
+fn d_dim() -> String { "#FFFFFF66".into() }
+fn d_empty() -> String { "♪".into() }
+fn d_line_gap() -> f32 { 6.0 }
+
+/// Capa do álbum da música tocando.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AlbumArtDef {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    #[serde(default)]
+    pub radius: f32,
+    #[serde(default = "d_one")]
+    pub opacity: f32,
+    /// Cor exibida quando não há capa (omita para não desenhar nada).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub placeholder: Option<String>,
+    #[serde(default)]
+    pub z: i32,
+    #[serde(flatten)]
+    pub behavior: Behavior,
+}
+
+/// Letra sincronizada no estilo karaokê: linha atual destacada, rolagem suave.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct LyricsDef {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub font: Option<String>,
+    /// Tamanho da linha atual.
+    #[serde(default = "d_size")]
+    pub size: f32,
+    /// Tamanho das demais linhas (padrão: 80% de `size`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size_other: Option<f32>,
+    #[serde(default = "d_white", alias = "color")]
+    pub color_hex: String,
+    /// Cor das linhas que não são a atual.
+    #[serde(default = "d_dim")]
+    pub color_dim: String,
+    /// Linhas visíveis (ímpar fica centralizado).
+    #[serde(default = "d_lines")]
+    pub lines: u32,
+    #[serde(default = "d_line_gap")]
+    pub line_gap: f32,
+    /// `center` (padrão), `left` ou `right`.
+    #[serde(default)]
+    pub align: String,
+    /// Texto quando não há letra (aceita placeholders).
+    #[serde(default = "d_empty")]
+    pub empty_text: String,
+    #[serde(default)]
+    pub z: i32,
+    #[serde(flatten)]
+    pub behavior: Behavior,
+}
+
+/// Recorta cantos arredondados (anti-aliased) numa imagem RGBA.
+fn round_corners(px: &mut [[u8; 4]], w: usize, h: usize, r: f32) {
+    let r = r.min(w as f32 / 2.0).min(h as f32 / 2.0);
+    if r < 0.5 {
+        return;
+    }
+    for y in 0..h {
+        for x in 0..w {
+            let (fx, fy) = (x as f32 + 0.5, y as f32 + 0.5);
+            let dx = (r - fx).max(fx - (w as f32 - r)).max(0.0);
+            let dy = (r - fy).max(fy - (h as f32 - r)).max(0.0);
+            if dx > 0.0 && dy > 0.0 {
+                let cov = (r - (dx * dx + dy * dy).sqrt() + 0.5).clamp(0.0, 1.0);
+                let p = &mut px[y * w + x];
+                p[3] = (p[3] as f32 * cov) as u8;
+            }
+        }
+    }
+}
+
+struct ArtFrame {
+    id: u64,
+    w: usize,
+    h: usize,
+    px: Vec<[u8; 4]>,
+}
+
+struct AlbumArtWidget {
+    def: AlbumArtDef,
+    placeholder: Option<Color>,
+    cur: Option<ArtFrame>,
+    prev: Option<ArtFrame>,
+    fade_start: f32,
+}
+
+impl AlbumArtWidget {
+    fn make(&self, art: &crate::telemetry::media::AlbumArt) -> ArtFrame {
+        let (w, h) = (self.def.width.round().max(1.0) as u32, self.def.height.round().max(1.0) as u32);
+        let img = image::imageops::resize(&art.img, w, h, image::imageops::FilterType::Triangle);
+        let mut px: Vec<[u8; 4]> = img.pixels().map(|p| p.0).collect();
+        round_corners(&mut px, w as usize, h as usize, self.def.radius);
+        ArtFrame { id: art.id, w: w as usize, h: h as usize, px }
+    }
+
+    fn draw(&mut self, c: &mut Canvas, ctx: &FrameCtx) -> bool {
+        let d = &self.def;
+        let art = ctx.env.snap.media_art.as_ref();
+        let want = art.map(|a| a.id);
+        let size_ok = self.cur.as_ref().is_some_and(|f| f.w == d.width.round() as usize && f.h == d.height.round() as usize);
+        if self.cur.as_ref().map(|f| f.id) != want || !size_ok {
+            let next = art.map(|a| self.make(a));
+            // Troca de faixa: guarda a capa anterior para o crossfade.
+            if self.cur.as_ref().map(|f| f.id) != want {
+                self.prev = self.cur.take();
+                self.fade_start = ctx.env.t;
+            }
+            self.cur = next;
+        }
+        let (x, y) = (d.x.round() as i32, d.y.round() as i32);
+        let k = ((ctx.env.t - self.fade_start) / 0.45).clamp(0.0, 1.0);
+        let k = k * k * (3.0 - 2.0 * k);
+        if self.cur.is_none() && self.prev.is_none() {
+            if let Some(pc) = self.placeholder {
+                c.fill_round_rect(d.x, d.y, d.width, d.height, d.radius, pc);
+            }
+            return false;
+        }
+        if k < 1.0 {
+            if let Some(p) = &self.prev {
+                c.blit_rgba(&p.px, p.w, p.h, x, y, d.opacity * (1.0 - k));
+            } else if let Some(pc) = self.placeholder {
+                c.fill_round_rect(d.x, d.y, d.width, d.height, d.radius, pc.with_alpha_mul(1.0 - k));
+            }
+        } else {
+            self.prev = None;
+        }
+        if let Some(f) = &self.cur {
+            c.blit_rgba(&f.px, f.w, f.h, x, y, d.opacity * k);
+        }
+        k < 1.0
+    }
+}
+
+struct LyricsWidget {
+    def: LyricsDef,
+    font: FontArc,
+    color: Color,
+    dim: Color,
+    empty: Template,
+    masks: HashMap<(String, bool), TextMask>,
+    lyrics_ptr: usize,
+    last_index: Option<usize>,
+    scroll_from: f32,
+    scroll_start: f32,
+}
+
+impl LyricsWidget {
+    fn mask(&mut self, text: &str, current: bool, fallbacks: &[FontArc]) -> &TextMask {
+        let d = &self.def;
+        let size = if current { d.size } else { d.size_other.unwrap_or(d.size * 0.8) };
+        let maxw = d.width;
+        let font = self.font.clone();
+        self.masks.entry((text.to_string(), current)).or_insert_with(|| {
+            // Encolhe até 70% para caber; depois trunca com reticências.
+            let mut sz = size;
+            while sz > size * 0.7 && measure(text, &font, fallbacks, sz, 0.0) > maxw {
+                sz -= 0.5;
+            }
+            let mut t = text.to_string();
+            if measure(&t, &font, fallbacks, sz, 0.0) > maxw {
+                let mut ch: Vec<char> = t.chars().collect();
+                while !ch.is_empty() && measure(&(ch.iter().collect::<String>() + "…"), &font, fallbacks, sz, 0.0) > maxw {
+                    ch.pop();
+                }
+                t = ch.iter().collect::<String>().trim_end().to_string() + "…";
+            }
+            render_text(&t, &font, fallbacks, sz, 0.0)
+        })
+    }
+
+    fn draw(&mut self, c: &mut Canvas, ctx: &FrameCtx, ov: &Overrides) -> bool {
+        let snap = ctx.env.snap;
+        let d = self.def.clone();
+        let cur_col = ov.color.unwrap_or(self.color);
+        let place = |w: usize| -> i32 {
+            match d.align.as_str() {
+                "left" => d.x,
+                "right" => d.x + d.width - w as f32,
+                _ => d.x + (d.width - w as f32) / 2.0,
+            }
+            .round() as i32
+        };
+        let clip = (d.x as i32, (d.x + d.width).ceil() as i32);
+
+        let Some(ly) = snap.lyrics.as_ref().filter(|l| !l.lines.is_empty()) else {
+            self.last_index = None;
+            let s = self.empty.render(&ctx.env);
+            if s.is_empty() {
+                return false;
+            }
+            let m = self.mask(&s, true, ctx.fallbacks).clone();
+            let y = (d.y + (d.height - m.h as f32) / 2.0).round() as i32;
+            c.draw_mask_ex(&m.data, m.w, m.h, place(m.w), y, clip, |_| self.dim);
+            return false;
+        };
+        // Letra nova: limpa o cache de máscaras.
+        let ptr = Arc::as_ptr(ly) as usize;
+        if ptr != self.lyrics_ptr {
+            self.lyrics_ptr = ptr;
+            self.masks.clear();
+            self.last_index = None;
+        }
+        let idx = snap.lyric_index();
+        let step = d.size_other.unwrap_or(d.size * 0.8) * 1.25 + d.line_gap;
+        if idx != self.last_index {
+            // Rolagem suave: parte do deslocamento anterior até 0.
+            let delta = match (self.last_index, idx) {
+                (Some(a), Some(b)) => (b as f32 - a as f32).clamp(-3.0, 3.0),
+                _ => 0.0,
+            };
+            self.scroll_from = delta * step;
+            self.scroll_start = ctx.env.t;
+            self.last_index = idx;
+        }
+        let k = ((ctx.env.t - self.scroll_start) / 0.35).clamp(0.0, 1.0);
+        let ease = 1.0 - (1.0 - k).powi(3);
+        let offset = self.scroll_from * (1.0 - ease);
+
+        let center = d.y + d.height / 2.0 + offset;
+        let half = (d.lines.max(1) as i32) / 2 + 1;
+        let base = idx.map(|i| i as i32).unwrap_or(-1);
+        for rel in -half..=half {
+            let li = base + rel;
+            if li < 0 || li as usize >= ly.lines.len() {
+                continue;
+            }
+            let text = ly.lines[li as usize].1.clone();
+            let text = if text.is_empty() { "♪".to_string() } else { text };
+            let current = rel == 0 && idx.is_some();
+            let m = self.mask(&text, current, ctx.fallbacks).clone();
+            let cy = center + rel as f32 * step + if rel > 0 { (d.size - d.size_other.unwrap_or(d.size * 0.8)) * 0.5 } else { 0.0 };
+            let y = (cy - m.h as f32 / 2.0).round() as i32;
+            if (y as f32) + (m.h as f32) < d.y || y as f32 > d.y + d.height {
+                continue;
+            }
+            // Desvanece nas bordas da área.
+            let dist = ((cy - (d.y + d.height / 2.0)).abs() / (d.height / 2.0).max(1.0)).clamp(0.0, 1.0);
+            let fade = 1.0 - dist.powi(2) * 0.85;
+            let col = if current { cur_col } else { self.dim.with_alpha_mul(fade) };
+            let top = d.y as i32;
+            let bottom = (d.y + d.height) as i32;
+            c.draw_mask_ex(&m.data, m.w, m.h, place(m.w), y, clip, |row| {
+                let py = y + row as i32;
+                if py < top || py >= bottom { Color { a: 0, ..col } } else { col }
+            });
+        }
+        k < 1.0
     }
 }
 

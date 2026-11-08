@@ -34,6 +34,7 @@ const S = {
 // ───────────────────────── Definições de widgets ─────────────────────────
 const ICONS = {
   text: "T", radial_gauge: "◔", bar: "▬", sparkline: "∿", image: "▣", rect: "□", shape: "◆", cores: "▥",
+  album_art: "◫", lyrics: "♪",
 };
 const SHAPE_ICONS = { rect: "□", ellipse: "○", regular: "⬡", star: "★", polygon: "⬠", line: "╱" };
 
@@ -51,6 +52,8 @@ const PALETTE = [
   { label: "Linha", icon: svgIcon('<path d="M4 18L20 6"/>'), make: () => shape("line", { points: [[0, 0.5], [1, 0.5]], height: 10, stroke: "#FFFFFF66", stroke_width: 2 }) },
   { label: "Imagem", icon: svgIcon('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-8 7"/>'), make: null, action: () => addImage() },
   { label: "Painel", icon: svgIcon('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/>'), make: () => ({ type: "rect", x: 10, y: 10, width: 140, height: 80, radius: 10, color_hex: "#00000088" }) },
+  { label: "Capa", icon: svgIcon('<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="12" cy="12" r="3"/>'), make: () => ({ type: "album_art", x: 14, y: 16, width: 104, height: 104, radius: 10, opacity: 1, placeholder: "#FFFFFF14", glow: "#000000B0", glow_radius: 7 }) },
+  { label: "Letra", icon: svgIcon('<path d="M4 7h10M4 12h16M4 17h8"/>'), make: () => ({ type: "lyrics", x: 12, y: 132, width: 296, height: 100, size: 16, size_other: 12.5, color_hex: "#FFFFFF", color_dim: "#FFFFFF8C", lines: 3, line_gap: 7, align: "center", empty_text: "♪", font: "seguisb.ttf" }) },
   { label: "Núcleos", icon: svgIcon('<path d="M5 20V12M9 20V6M13 20V14M17 20V9M21 20V4"/>'), make: () => ({ type: "cores", x: 40, y: 140, width: 240, height: 60, columns: 0, gap: 2, orientation: "vertical", radius: 2, color_gradient: ["#22D3EE", "#8B6CFF", "#FF4FD8"], track_color: "#FFFFFF14" }) },
   { label: "Floco", icon: svgIcon('<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/>'), make: () => shape("line", { x: 110, y: 70, width: 100, height: 100, points: [[0.5, 0.5], [0.5, 0.05]], paths: [[[0.37, 0.11], [0.5, 0.24], [0.63, 0.11]], [[0.41, 0.28], [0.5, 0.37], [0.59, 0.28]]], repeat: 6, stroke: "#38E1F0", stroke_width: 6, glow: "#38E1F0", glow_radius: 7 }) },
   { label: "Mandala", icon: svgIcon('<circle cx="12" cy="12" r="3"/><path d="M12 2c3 3 3 7 0 7s-3-4 0-7zM12 22c3-3 3-7 0-7s-3 4 0 7z"/>'), make: () => shape("ellipse", { x: 130, y: 60, width: 60, height: 120, repeat: 8, fill_gradient: ["#FF4FD855", "#8B6CFF11"], gradient_type: "radial", stroke: "#FF4FD8", stroke_width: 1, animation: "spin", animation_speed: 0.15 }) },
@@ -66,6 +69,15 @@ function shape(kind, extra) {
 }
 
 const PRESETS = [
+  { name: "Player completo", desc: "capa + tempo + letra", layers: () => [
+    { type: "album_art", x: 14, y: 16, width: 104, height: 104, radius: 10, opacity: 1, placeholder: "#FFFFFF14", glow: "#000000B0", glow_radius: 7, visible_if: "media_active == 1" },
+    { type: "text", text: "{media_title}", font: "seguisb.ttf", size: 18, x: 130, y: 18, max_width: 178, color_hex: "#FFFFFF", animation: "marquee", animation_speed: 0.7, visible_if: "media_active == 1" },
+    { type: "text", text: "{media_artist}", font: "segoeui.ttf", size: 13, x: 130, y: 45, max_width: 178, color_hex: "$album_light", visible_if: "media_active == 1" },
+    { type: "text", text: "{media_position_str}", font: "segoeui.ttf", size: 11, x: 130, y: 93, color_hex: "#FFFFFFCC", visible_if: "media_active == 1" },
+    { type: "text", text: "{media_duration_str}", font: "segoeui.ttf", size: 11, x: 308, y: 93, align: "right", color_hex: "#FFFFFF88", visible_if: "media_active == 1" },
+    { type: "bar", metric: "media_progress", min: 0, max: 100, x: 130, y: 112, width: 178, height: 4, radius: 2, color_hex: "$album_vibrant", color_gradient: [], track_color: "#FFFFFF26", smooth: true, visible_if: "media_active == 1" },
+    { type: "lyrics", x: 12, y: 132, width: 296, height: 100, size: 16, size_other: 12.5, color_hex: "#FFFFFF", color_dim: "#FFFFFF8C", lines: 3, line_gap: 7, align: "center", empty_text: "♪", font: "seguisb.ttf", visible_if: "media_active == 1" },
+  ]},
   { name: "Relógio", desc: "hora + data", layers: () => [
     { type: "text", text: "{time:%H:%M}", font: "segoeuil.ttf", size: 64, x: 160, y: 96, align: "center", valign: "middle", color_hex: "#FFFFFF" },
     { type: "text", text: "{date:%d/%m/%Y}", font: "segoeui.ttf", size: 14, x: 160, y: 140, align: "center", valign: "middle", color_hex: "#9AA4B8" },
@@ -133,6 +145,8 @@ function layerName(l) {
     case "image": return `Imagem · ${l.path}`;
     case "rect": return "Painel";
     case "cores": return "Núcleos da CPU";
+    case "album_art": return "Capa do álbum";
+    case "lyrics": return "Letra sincronizada";
     case "shape": {
       const n = { rect: "Retângulo", ellipse: "Elipse", regular: `Polígono ${l.sides}`, star: "Estrela", polygon: "Forma livre", line: "Linha" }[l.kind] || l.kind;
       return l.metric ? `${n} · ${l.metric}` : n;
@@ -145,7 +159,7 @@ function layerName(l) {
 function boxOf(i) {
   const l = S.doc.layers[i];
   switch (l.type) {
-    case "rect": case "shape": case "bar": case "sparkline": case "cores":
+    case "rect": case "shape": case "bar": case "sparkline": case "cores": case "album_art": case "lyrics":
       return [l.x, l.y, l.width, l.height];
     case "radial_gauge": {
       const r = l.radius + l.stroke_width / 2;
@@ -279,7 +293,7 @@ function drawOverlay() {
   }
 }
 
-const resizable = (l) => ["rect", "shape", "bar", "sparkline", "image", "radial_gauge", "text", "cores"].includes(l.type);
+const resizable = (l) => ["rect", "shape", "bar", "sparkline", "image", "radial_gauge", "text", "cores", "album_art", "lyrics"].includes(l.type);
 function handlesOf(x, y, w, h) {
   return [
     [x, y, "nw"], [x + w / 2, y, "n"], [x + w, y, "ne"], [x + w, y + h / 2, "e"],
@@ -555,9 +569,21 @@ function seg(options, value, onPick) {
   return d;
 }
 
+/** Cores de exemplo para $album_* no editor (as reais vêm da capa tocando). */
+const ALBUM_PREVIEW = { album: "#38E1F0", album_vibrant: "#38E1F0", album_dominant: "#464C5A", album_dark: "#0E1016", album_light: "#CDD4E0" };
+
 function hexToParts(hex) {
   // Referências à paleta ($nome) são resolvidas só para exibição.
-  for (let i = 0; i < 3 && typeof hex === "string" && hex.startsWith("$"); i++) hex = S.doc?.palette?.[hex.slice(1)] || "#FFFFFF";
+  let pct = null;
+  for (let i = 0; i < 3 && typeof hex === "string" && hex.startsWith("$"); i++) {
+    const [name, a] = hex.slice(1).split("/");
+    if (a != null) pct = parseFloat(a);
+    hex = S.doc?.palette?.[name] || ALBUM_PREVIEW[name] || "#FFFFFF";
+  }
+  if (pct != null && !isNaN(pct)) {
+    const p0 = hexToParts(hex);
+    return { rgb: p0.rgb, a: Math.round(p0.a * clamp(pct, 0, 100) / 100) };
+  }
   let h = String(hex || "#FFFFFF").trim().replace(/^#/, "");
   // Só hexadecimal válido chega ao DOM (temas de terceiros não injetam HTML/CSS).
   if (!/^([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(h)) h = "FFFFFF";
@@ -810,7 +836,7 @@ class Form {
     f.appendChild(ta);
     const chips = document.createElement("div");
     chips.className = "chips";
-    const all = ["{time:%H:%M:%S}", "{time:%H:%M}", "{date:%d/%m/%Y}", "{weekday}", "{cpu_temp*1.8+32:.0}", "{ram_used_gb/ram_total_gb*100:.0}", "{max(cpu_temp, gpu_temp)}",
+    const all = ["{media_position_str}", "{media_duration_str}", "{lyrics_line}", "{time:%H:%M:%S}", "{time:%H:%M}", "{date:%d/%m/%Y}", "{weekday}", "{cpu_temp*1.8+32:.0}", "{ram_used_gb/ram_total_gb*100:.0}", "{max(cpu_temp, gpu_temp)}",
       ...(S.info?.numeric_keys || []).map((k) => `{${k}:.0}`), ...(S.info?.text_keys || []).map((k) => `{${k}}`)];
     for (const p of all) {
       const c = document.createElement("span");
@@ -879,6 +905,20 @@ function renderProps() {
     case "image":
       f.section("Imagem").text("Arquivo", "path").grid2(() => { f.num("X", "x"); f.num("Y", "y"); f.num("L", "width", { min: 1 }); f.num("A", "height", { min: 1 }); })
         .range("Opacidade", "opacity", { def: 1 });
+      break;
+    case "album_art":
+      f.section("Capa"); geo();
+      f.num("Cantos", "radius", { min: 0 }).range("Opacidade", "opacity", { def: 1 }).optColor("Sem capa", "placeholder")
+        .note("Mostra a capa da música tocando (Spotify, navegador…), com crossfade na troca de faixa. Use <b>Brilho</b> preto em Comportamento como sombra.");
+      break;
+    case "lyrics":
+      f.section("Letra").font("Fonte", "font").num("Tamanho atual", "size", { min: 6, max: 60, step: 0.5 })
+        .optNum("Tamanho demais", "size_other", { placeholder: "80% do atual" }).color("Cor atual", "color_hex").color("Cor demais", "color_dim", "#FFFFFF66")
+        .num("Linhas", "lines", { min: 1, max: 9, def: 3 }).num("Espaço", "line_gap", { min: 0, max: 30, step: 0.5, def: 6 })
+        .seg("Alinhar", "align", [["left", "Esq."], ["center", "Centro"], ["right", "Dir."]], "center")
+        .text("Sem letra", "empty_text", { placeholder: "♪" })
+        .note("Letras sincronizadas do LRCLIB, buscadas ao trocar de faixa (desative em Display → Música).");
+      f.section("Geometria"); geo();
       break;
     case "cores":
       f.section("Grade").num("Colunas", "columns", { min: 0, max: 64, def: 0 }).num("Espaço", "gap", { min: 0, max: 20, step: 0.5, def: 2 })
@@ -954,12 +994,15 @@ function renderBackground() {
   if (!S.doc) return;
   const bg = S.doc.background;
   const f = new Form(root, bg, { onCommit: () => renderBackground() });
-  f.section("Fundo").seg("Tipo", "type", [["solid", "Cor"], ["static", "Imagem"], ["gif", "Animação"], ["video", "Vídeo"]], "auto");
+  f.section("Fundo").seg("Tipo", "type", [["solid", "Cor"], ["static", "Imagem"], ["gif", "Anim."], ["video", "Vídeo"], ["album", "Capa"]], "auto");
   if (bg.type === "solid") f.color("Cor", "color", "#000000");
+  else if (bg.type === "album") f.color("Sem capa", "color", "#0B0B12").num("Desfoque", "blur", { min: 0, max: 40, def: 14 })
+    .note("A capa da música tocando, desfocada, com crossfade a cada faixa. Use <code>$album_vibrant</code>, <code>$album_light</code>, <code>$album_dark</code> e <code>$album_dominant</code> nas cores para o tema inteiro acompanhar a capa.");
   else {
     f.text("Arquivo", "path", { placeholder: "bg.png / bg.gif / bg.mp4" });
     f.button("Importar arquivo…", () => importBackground());
     f.seg("Ajuste", "fit", [["cover", "Preencher"], ["contain", "Conter"], ["stretch", "Esticar"]], "cover");
+    if (bg.type === "static") f.num("Desfoque", "blur", { min: 0, max: 40, def: 0 });
   }
   f.range("Escurecer", "dim", { min: 0, max: 0.9, step: 0.01, def: 0 });
   const m = new Form(root, S.doc.meta, { onCommit: () => {} });
@@ -1011,6 +1054,11 @@ async function renderDevice() {
     .check("Inverter V", "flip_vertical").check("Espelhar H", "flip_horizontal").check("Silencioso", "silent")
     .range("FPS máx.", "max_fps", { min: 1, max: 30, step: 1, def: 24 })
     .note("Padrão 24. Fundos animados custam CPU proporcional ao FPS (driver USB do Windows): ~0,30% a 15 fps, ~0,43% a 30 fps. Temas estáticos quase não são afetados.");
+  f.section("Música").check("Modo automático", "music_mode", true)
+    .text("Tema da música", "music_theme", { placeholder: "now_playing" })
+    .num("Voltar após (s)", "music_return_s", { min: 1, max: 600, def: 8 })
+    .check("Letras (LRCLIB)", "lyrics", true)
+    .note("Ao tocar uma música, o display troca para o tema de música e volta ao normal depois de pausado. Letras: envia título/artista ao lrclib.net (requer reiniciar o serviço).");
   f.section("Tela de inicialização").check("Exibir", "splash", true)
     .num("Duração (ms)", "splash_ms", { min: 300, max: 15000, step: 100, def: 2600 })
     .note("Edite o visual escolhendo <b>⚡ Tela de inicialização</b> na lista de temas.");

@@ -15,13 +15,13 @@ O Studio roda em um processo separado (~45 MB, por causa do WebView2) e só prec
 | Área | Função |
 |---|---|
 | **Barra superior** | Escolha de tema, novo/duplicar, desfazer/refazer, encaixe, grade, zoom, status do serviço, **Exibir no display** e **Salvar** |
-| **Adicionar** | Texto, gauge, barra, gráfico, retângulo, elipse, polígono, estrela, forma livre, linha, imagem, painel, núcleos, floco e mandala |
-| **Modelos prontos** | Grupos de camadas pré-montados: relógio, cards de CPU/GPU, rede, música, medidor líquido |
+| **Adicionar** | Texto, gauge, barra, gráfico, retângulo, elipse, polígono, estrela, forma livre, linha, imagem, painel, **capa**, **letra**, núcleos, floco e mandala |
+| **Modelos prontos** | Grupos de camadas pré-montados: **player completo**, relógio, cards de CPU/GPU, rede, música, medidor líquido |
 | **Camadas** | Lista da frente para o fundo: arraste para reordenar, ● para ocultar, 🔓 para travar |
 | **Canvas** | Selecionar, mover, redimensionar e editar pontos |
 | **Propriedades** | Campos do tipo da camada mais a seção **Comportamento**, comum a todas |
-| **Fundo** | Tipo de fundo, importação de mídia, escurecimento, nome do tema, fonte padrão e **paleta** |
-| **Display** | Brilho, FPS, rotação, inverter/espelhar, modo silencioso, tela de inicialização, backend de GPU, clima |
+| **Fundo** | Tipo de fundo (incluindo **capa** desfocada), importação de mídia, desfoque, escurecimento, nome do tema, fonte padrão e **paleta** |
+| **Display** | Brilho, FPS, rotação, inverter/espelhar, modo silencioso, **modo música** e letras, tela de inicialização, backend de GPU, clima |
 | **Dados** | Telemetria ao vivo; clique em um nome para copiar o placeholder |
 
 ## Edição no canvas
@@ -66,6 +66,15 @@ O Studio roda em um processo separado (~45 MB, por causa do WebView2) e só prec
 - **Salvar** (Ctrl+S) grava o `theme.toml` e guarda o anterior como `theme.toml.bak`. Se o tema estiver ativo, o display atualiza na hora (hot-reload).
 - **Exibir no display** define o tema como ativo no `config.toml`, e o serviço troca em cerca de 1 s.
 - **Camadas ocultas** não aparecem na pré-visualização, mas **continuam salvas** no arquivo.
+
+## Temas de música
+
+<p align="center"><img src="img/studio_now_playing.png" width="900" alt="Editando o Now Playing"></p>
+
+- **Ponto de partida:** use o modelo **Player completo**, ou as ferramentas **Capa** e **Letra**.
+- **Fundo:** em **Fundo → Tipo → Capa**, o fundo passa a ser a capa desfocada.
+- **Cores que seguem a música:** use `$album_vibrant`, `$album_light`, etc. No editor, essas cores mostram valores de exemplo; no display, seguem a capa tocando.
+- **Sem música tocando:** abra o Studio com `KALKAN_DEMO_MEDIA=1` para ter uma faixa fictícia com capa e letra.
 
 ## Tela de inicialização
 

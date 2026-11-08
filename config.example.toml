@@ -14,6 +14,12 @@ flip_vertical = true       # orientação por software (vertical + horizontal = 
 flip_horizontal = true
 silent = false             # tela preta e brilho 0
 
+# Música: troca para o tema de música enquanto algo toca e volta após pausar
+music_mode = true
+music_theme = "now_playing"
+music_return_s = 8
+lyrics = true              # letras sincronizadas via lrclib.net (envia título/artista)
+
 # Tela de inicialização (tema em splash_dir, editável no Studio)
 splash = true
 splash_ms = 2600

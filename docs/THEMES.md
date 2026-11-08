@@ -12,7 +12,8 @@ kalkan-rs --preview meu_tema
 - [Cores e paleta](#cores-e-paleta)
 - [Fundo](#fundo)
 - [Camadas](#camadas)
-  - [`text`](#text) · [`radial_gauge`](#radial_gauge) · [`bar`](#bar) · [`sparkline`](#sparkline) · [`cores`](#cores) · [`shape`](#shape) · [`rect`](#rect) · [`image`](#image)
+  - [`text`](#text) · [`radial_gauge`](#radial_gauge) · [`bar`](#bar) · [`sparkline`](#sparkline) · [`cores`](#cores) · [`shape`](#shape) · [`rect`](#rect) · [`image`](#image) · [`album_art`](#album_art) · [`lyrics`](#lyrics)
+- [Música: capa, letra e cores adaptáveis](#música-capa-letra-e-cores-adaptáveis)
 - [Comportamentos (todas as camadas)](#comportamentos-todas-as-camadas)
 - [Expressões](#expressões)
 - [Placeholders de texto](#placeholders-de-texto)
@@ -52,6 +53,7 @@ Todo campo de cor aceita:
 | `#RGB` / `#RGBA` | `"#0FC"`, `"#0FC8"` |
 | `#RRGGBB` / `#RRGGBBAA` | `"#00FFCC"`, `"#00FFCC80"` (alfa no fim) |
 | `$nome` | `"$accent"`, cor definida em `[palette]` |
+| `$nome/NN` | `"$accent/40"`, cor da paleta com 40% de opacidade |
 
 A paleta permite recolorir o tema inteiro mudando um único valor. Uma entrada pode apontar para outra: `alias = "$accent"`.
 
@@ -59,11 +61,12 @@ A paleta permite recolorir o tema inteiro mudando um único valor. Uma entrada p
 
 ```toml
 [background]
-type = "video"     # video | gif | static | solid | auto (deduz pela extensão)
+type = "video"     # video | gif | static | solid | album | auto (deduz pela extensão)
 path = "bg.mp4"    # relativo à pasta do tema
 fit = "cover"      # cover (preenche e recorta) | contain (tarjas) | stretch (estica)
 dim = 0.35         # escurece o fundo 0..1 para destacar os widgets
-color = "#000000"  # usado por type = "solid"
+color = "#000000"  # usado por type = "solid" (e por "album" enquanto não há capa)
+blur = 0           # desfoque em px (static e album; album usa 14 se omitido)
 ```
 
 | Tipo | Formatos | Observações |
@@ -72,6 +75,7 @@ color = "#000000"  # usado por type = "solid"
 | `gif` | GIF, WebP animado, APNG | Os quadros ficam em cache na RAM (`anim_cache_mb`); acima disso, streaming |
 | `static` | PNG, JPG, WebP | Redimensionado uma única vez ao carregar |
 | `solid` | — | Apenas a cor |
+| `album` | — | Capa da música tocando, desfocada, com crossfade de 0,8 s na troca de faixa |
 
 ## Camadas
 
@@ -242,6 +246,65 @@ height = 32
 opacity = 1.0
 ```
 
+### `album_art`
+
+Capa da música tocando, com cantos arredondados e crossfade na troca de faixa.
+
+```toml
+[[widgets.album_art]]
+x = 14
+y = 16
+width = 104
+height = 104
+radius = 10
+opacity = 1.0
+placeholder = "#FFFFFF14"      # cor exibida sem capa (omita para não desenhar nada)
+glow = "#000000B0"             # brilho preto = sombra
+glow_radius = 7
+```
+
+### `lyrics`
+
+Letra sincronizada no estilo karaokê: a linha atual fica destacada e a troca de linha rola suavemente. Linhas longas encolhem até 70% do tamanho e, se ainda não couberem, são truncadas.
+
+```toml
+[[widgets.lyrics]]
+x = 12
+y = 132
+width = 296
+height = 100
+font = "seguisb.ttf"
+size = 16                      # linha atual
+size_other = 12.5              # demais linhas (padrão 80% de size)
+color_hex = "#FFFFFF"          # linha atual
+color_dim = "#FFFFFF8C"        # demais linhas (esmaecem nas bordas da área)
+lines = 3
+line_gap = 7
+align = "center"               # left | center | right
+empty_text = "♪"               # sem letra (aceita placeholders)
+```
+
+## Música: capa, letra e cores adaptáveis
+
+**Dados da faixa:** vêm da sessão de mídia do Windows (Spotify, navegadores, Apple Music…). A posição avança suavemente entre as leituras.
+
+**Letras:** são buscadas no [LRCLIB](https://lrclib.net) quando a faixa muda. Apenas título, artista, álbum e duração são enviados, e o recurso pode ser desligado com `lyrics = false`. Quando só existe a letra sem tempos, as linhas avançam proporcionalmente ao progresso da música.
+
+**Cores da capa:** a cada capa nova, o kalkan-rs extrai uma paleta. Qualquer campo de cor pode usar estas entradas, e o tema inteiro muda de cor a cada música:
+
+| Cor | Uso sugerido |
+|---|---|
+| `$album_vibrant` (ou `$album`) | Destaques: barra de progresso, ícones |
+| `$album_dominant` | Cor predominante da capa |
+| `$album_dark` | Fundos e painéis |
+| `$album_light` | Textos secundários |
+
+Sem música tocando, essas cores usam valores neutros. Um tema também pode definir `album_*` na própria `[palette]` para substituí-las.
+
+**Modo música automático:** configurado por `music_mode`, `music_theme` e `music_return_s`. Ao começar a tocar, o display troca para o tema de música (padrão `now_playing`) e volta ao tema normal depois de `music_return_s` segundos pausado. Se você escolher outro tema manualmente durante a música, a escolha é respeitada até a música parar.
+
+> **Demonstração sem música:** rode com a variável `KALKAN_DEMO_MEDIA=1` (serviço, `--preview`, `--record` ou Studio) para usar uma faixa fictícia com capa e letra de exemplo.
+
 ## Comportamentos (todas as camadas)
 
 Estas chaves funcionam em **qualquer** tipo de camada:
@@ -335,11 +398,12 @@ sin(t * 3) * 0.5 + 0.5               oscilação
 | Memória | `ram_used`, `ram_total` (MB), `ram_used_gb`, `ram_total_gb`, `ram_pct`, `swap_used`, `swap_pct` |
 | Disco | `disk_pct`, `disk_used_gb`, `disk_total_gb`, `disk_read_mb`, `disk_write_mb` (MB/s) |
 | Rede | `net_down_kb`, `net_up_kb`, `net_down_mb`, `net_up_mb` (por segundo) |
-| Outros | `media_playing` (0/1), `weather_temp`, `weather_humidity`, `weather_wind` |
+| Música | `media_playing`, `media_active` (0/1), `media_position`, `media_duration`, `media_remaining` (s), `media_progress` (0–100), `lyrics_available`, `album_art_available` |
+| Outros | `weather_temp`, `weather_humidity`, `weather_wind` |
 
 **Texto:** usadas apenas em placeholders.
 
-`cpu_name`, `gpu_name`, `net_down`, `net_up`, `disk_read`, `disk_write` (com unidade automática), `media_title`, `media_artist`, `media_album`, `media_state`, `media_icon` (▶ / ❚❚ / ■), `weather_desc`.
+`cpu_name`, `gpu_name`, `net_down`, `net_up`, `disk_read`, `disk_write` (com unidade automática), `media_title`, `media_artist`, `media_album`, `media_state`, `media_icon` (▶ / ❚❚ / ■), `media_position_str`, `media_duration_str`, `media_remaining_str` (`1:23`, `-2:05`), `lyrics_line`, `lyrics_prev`, `lyrics_next`, `weather_desc`.
 
 **Com histórico** (aceitas pelo `sparkline`): `cpu_usage`, `cpu_temp`, `cpu_power`, `cpu_clock`, `gpu_usage`, `gpu_temp`, `gpu_power`, `ram_pct`, `net_down_kb`, `net_up_kb`, `disk_read_mb`, `disk_write_mb`.
 
@@ -351,6 +415,7 @@ A tela de inicialização é um tema comum, guardado em `assets/splash/`. Ela ap
 
 ## Dicas de desempenho
 
+- **Camadas estáticas** no fundo da pilha (painéis, véus, formas sem métrica nem animação) são desenhadas uma única vez e reutilizadas.
 - **Temas estáticos** só são redesenhados quando algum valor muda, o que custa praticamente zero de CPU.
 - **Fundos animados** custam CPU proporcional ao FPS, a maior parte dela no driver USB do Windows. Ajuste `max_fps`; 15–24 já fica fluido.
 - **`glow` e animações:** `glow` processa só a área da camada, e animações contínuas (`pulse`, `spin`, `marquee`) redesenham as camadas a cada quadro. Use com moderação em temas que ficam ligados o tempo todo.

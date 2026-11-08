@@ -172,8 +172,7 @@ fn main() {
     }
 
     let hub = Arc::new(TelemetryHub::default());
-    let weather_at = cfg.weather_lat.zip(cfg.weather_lon);
-    telemetry::spawn(hub.clone(), cfg.disk_mount.clone(), cfg.gpu_backend.clone(), weather_at);
+    telemetry::spawn(hub.clone(), telemetry::Options::from_config(&cfg));
 
     if let Some((theme, out, secs)) = args.record {
         let dir = if theme == "splash" { cfg.splash_path() } else { cfg.themes_path().join(&theme) };
@@ -227,6 +226,7 @@ fn main() {
             silent: cfg.silent,
             orientation: renderer::canvas::Orientation { flip_x: cfg.flip_horizontal, flip_y: cfg.flip_vertical },
             splash: cfg.splash.then(|| (cfg.splash_path(), Duration::from_millis(cfg.splash_ms.clamp(300, 15000) as u64))),
+            music: cfg.music_settings(),
         };
         let (hub, frames) = (hub.clone(), frames.clone());
         std::thread::Builder::new()

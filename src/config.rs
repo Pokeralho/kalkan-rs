@@ -43,6 +43,13 @@ pub struct Config {
     pub splash_ms: u32,
     /// Pasta do tema da tela de inicialização.
     pub splash_dir: PathBuf,
+    /// Busca letras sincronizadas (LRCLIB) da música tocando. Envia título/artista.
+    pub lyrics: bool,
+    /// Troca para `music_theme` enquanto uma música toca.
+    pub music_mode: bool,
+    pub music_theme: String,
+    /// Segundos pausado até voltar ao tema normal.
+    pub music_return_s: u32,
     /// Coordenadas para o clima (Open-Meteo). Ausentes = clima desativado.
     pub weather_lat: Option<f64>,
     pub weather_lon: Option<f64>,
@@ -64,6 +71,10 @@ impl Default for Config {
             anim_cache_mb: 12,
             disk_mount: "C:\\".into(),
             gpu_backend: "auto".into(),
+            lyrics: true,
+            music_mode: true,
+            music_theme: "now_playing".into(),
+            music_return_s: 8,
             splash: true,
             splash_ms: 2600,
             splash_dir: PathBuf::from("assets/splash"),
@@ -144,6 +155,12 @@ impl Config {
 
     pub fn fonts_path(&self) -> PathBuf {
         Self::resolve(&self.fonts_dir)
+    }
+
+    /// Parâmetros do modo música para o renderizador.
+    pub fn music_settings(&self) -> Option<(PathBuf, std::time::Duration)> {
+        self.music_mode
+            .then(|| (self.themes_path().join(&self.music_theme), std::time::Duration::from_secs(self.music_return_s.clamp(1, 600) as u64)))
     }
 
     pub fn splash_path(&self) -> PathBuf {

@@ -24,6 +24,7 @@ enum Action {
     Fps(u32),
     Rotation(u32),
     Silent,
+    Music,
     FlipV,
     FlipH,
     Reload,
@@ -46,6 +47,7 @@ struct Tray {
     fps_items: Vec<(u32, CheckMenuItem)>,
     rot_items: Vec<(u32, CheckMenuItem)>,
     silent_item: CheckMenuItem,
+    music_item: CheckMenuItem,
     flip_v: CheckMenuItem,
     flip_h: CheckMenuItem,
     icon: TrayIcon,
@@ -129,6 +131,8 @@ impl Tray {
         let flip_h = CheckMenuItem::new("Espelhar horizontalmente", true, cfg.flip_horizontal, None);
         actions.insert(flip_h.id().clone(), Action::FlipH);
         rot_menu.append_items(&[&PredefinedMenuItem::separator(), &flip_v, &flip_h])?;
+        let music_item = CheckMenuItem::new("Modo música automático", true, cfg.music_mode, None);
+        actions.insert(music_item.id().clone(), Action::Music);
         let silent_item = CheckMenuItem::new("Modo silencioso", true, cfg.silent, None);
         actions.insert(silent_item.id().clone(), Action::Silent);
         let studio = MenuItem::new("Abrir Kalkan Studio…", true, None);
@@ -149,6 +153,7 @@ impl Tray {
             &bright_menu,
             &fps_menu,
             &rot_menu,
+            &music_item,
             &silent_item,
             &PredefinedMenuItem::separator(),
             &reload,
@@ -177,6 +182,7 @@ impl Tray {
             fps_items,
             rot_items,
             silent_item,
+            music_item,
             flip_v,
             flip_h,
             icon,
@@ -198,6 +204,7 @@ impl Tray {
             it.set_checked(*r == self.cfg.rotation);
         }
         self.silent_item.set_checked(self.cfg.silent);
+        self.music_item.set_checked(self.cfg.music_mode);
         self.flip_v.set_checked(self.cfg.flip_vertical);
         self.flip_h.set_checked(self.cfg.flip_horizontal);
     }
@@ -240,6 +247,9 @@ impl Tray {
         }
         if c.brightness != old.brightness || c.silent != old.silent {
             let _ = self.driver.send(DriverCmd::Brightness(if c.silent { 0 } else { c.brightness }));
+        }
+        if (c.music_mode, &c.music_theme, c.music_return_s) != (old.music_mode, &old.music_theme, old.music_return_s) {
+            let _ = self.render.send(RenderCmd::Music(c.music_settings()));
         }
         if c.max_fps != old.max_fps {
             let _ = self.render.send(RenderCmd::MaxFps(c.max_fps));
@@ -316,6 +326,10 @@ impl Tray {
                 let _ = self.render.send(RenderCmd::Silent(self.cfg.silent));
                 let b = if self.cfg.silent { 0 } else { self.cfg.brightness };
                 let _ = self.driver.send(DriverCmd::Brightness(b));
+            }
+            Action::Music => {
+                self.cfg.music_mode = !self.cfg.music_mode;
+                let _ = self.render.send(RenderCmd::Music(self.cfg.music_settings()));
             }
             Action::FlipV | Action::FlipH => {
                 if matches!(action, Action::FlipV) {
