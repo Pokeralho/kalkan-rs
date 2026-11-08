@@ -206,7 +206,7 @@ fn list_themes(state: State<AppState>) -> Value {
         .collect();
     let mut items = items;
     if s.cfg.splash_path().join("theme.toml").is_file() {
-        items.push(json!({ "id": SPLASH_ID, "name": "⚡ Tela de inicialização", "active": false, "splash": true }));
+        items.push(json!({ "id": SPLASH_ID, "name": "Tela de inicialização (splash)", "active": false, "splash": true }));
     }
     json!(items)
 }

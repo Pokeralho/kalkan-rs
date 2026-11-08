@@ -58,7 +58,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            active_theme: "cyberpunk".into(),
+            active_theme: "dark_hub".into(),
             brightness: 80,
             rotation: 0,
             flip_vertical: true,

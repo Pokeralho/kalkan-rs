@@ -332,7 +332,7 @@ Exemplo de alerta que só aparece quando a CPU esquenta, piscando:
 
 ```toml
 [[widgets.text]]
-text = "⚠ CPU {cpu_temp:.0}°C"
+text = "CPU QUENTE  {cpu_temp:.0}°C"
 x = 160
 y = 12
 align = "center"
@@ -411,7 +411,7 @@ sin(t * 3) * 0.5 + 0.5               oscilação
 
 ## Tela de inicialização
 
-A tela de inicialização é um tema comum, guardado em `assets/splash/`. Ela aparece por `splash_ms` milissegundos quando o serviço inicia. Edite pelo Kalkan Studio, escolhendo **⚡ Tela de inicialização** na lista de temas, ou direto no arquivo. A variável `t` permite sincronizar animações e barras de carregamento.
+A tela de inicialização é um tema comum, guardado em `assets/splash/`. Ela aparece por `splash_ms` milissegundos quando o serviço inicia. Edite pelo Kalkan Studio, escolhendo **Tela de inicialização** na lista de temas, ou direto no arquivo. A variável `t` permite sincronizar animações e barras de carregamento.
 
 ## Dicas de desempenho
 

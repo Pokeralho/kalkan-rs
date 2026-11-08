@@ -2,7 +2,7 @@
 name = "kalkan-studio"
 version = "0.3.0"
 edition = "2021"
-description = "Kalkan Studio — editor visual de temas para o display AIO KALKAN"
+description = "Kalkan Studio: editor visual de temas para o display do Kalkan Aura LCD 240"
 license = "MIT"
 
 [build-dependencies]

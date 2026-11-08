@@ -6,6 +6,7 @@
 
 | Item | Valor |
 |---|---|
+| Produto testado | Water cooler **Kalkan Aura LCD 240** |
 | USB | VID `0x1B80` · PID `0xB550` (CDC-ACM → porta COM) |
 | Tela | 320 × 240, RGB565 **big-endian** |
 | Quadro | 320 × 240 × 2 = **153.600 bytes** |

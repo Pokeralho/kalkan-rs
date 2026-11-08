@@ -20,6 +20,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 - Camadas estáticas da base da pilha passam a ser rasterizadas uma única vez (até 5× menos custo por atualização).
 - O letreiro (`marquee`) só pede quadros novos quando o texto realmente rola. O modo música fica em ~0,1% de CPU.
 - `--preview` espera as transições terminarem antes de capturar.
+- Tema padrão de uma instalação nova: Dark Hub.
+- README em inglês, com versão em português (`README.pt-BR.md`).
 
 ## [0.2.0] — 2026-11-08
 

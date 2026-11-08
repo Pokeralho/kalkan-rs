@@ -17,7 +17,7 @@ O Studio roda em um processo separado (~45 MB, por causa do WebView2) e só prec
 | **Barra superior** | Escolha de tema, novo/duplicar, desfazer/refazer, encaixe, grade, zoom, status do serviço, **Exibir no display** e **Salvar** |
 | **Adicionar** | Texto, gauge, barra, gráfico, retângulo, elipse, polígono, estrela, forma livre, linha, imagem, painel, **capa**, **letra**, núcleos, floco e mandala |
 | **Modelos prontos** | Grupos de camadas pré-montados: **player completo**, relógio, cards de CPU/GPU, rede, música, medidor líquido |
-| **Camadas** | Lista da frente para o fundo: arraste para reordenar, ● para ocultar, 🔓 para travar |
+| **Camadas** | Lista da frente para o fundo: arraste para reordenar; os botões à direita ocultam e travam a camada |
 | **Canvas** | Selecionar, mover, redimensionar e editar pontos |
 | **Propriedades** | Campos do tipo da camada mais a seção **Comportamento**, comum a todas |
 | **Fundo** | Tipo de fundo (incluindo **capa** desfocada), importação de mídia, desfoque, escurecimento, nome do tema, fonte padrão e **paleta** |
@@ -78,4 +78,4 @@ O Studio roda em um processo separado (~45 MB, por causa do WebView2) e só prec
 
 ## Tela de inicialização
 
-Escolha **⚡ Tela de inicialização** na lista de temas para editar a tela que aparece ao ligar o serviço (a padrão é a do Dark Hub). Duração e ativação ficam na aba **Display**.
+Escolha **Tela de inicialização** na lista de temas para editar a tela que aparece ao ligar o serviço (a padrão é a do Dark Hub). Duração e ativação ficam na aba **Display**.

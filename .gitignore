@@ -17,3 +17,6 @@ theme.toml.bak
 *.swp
 Thumbs.db
 desktop.ini
+
+# Configuração local do Claude Code (servidor de preview)
+.claude/

@@ -1061,7 +1061,7 @@ async function renderDevice() {
     .note("Ao tocar uma música, o display troca para o tema de música e volta ao normal depois de pausado. Letras: envia título/artista ao lrclib.net (requer reiniciar o serviço).");
   f.section("Tela de inicialização").check("Exibir", "splash", true)
     .num("Duração (ms)", "splash_ms", { min: 300, max: 15000, step: 100, def: 2600 })
-    .note("Edite o visual escolhendo <b>⚡ Tela de inicialização</b> na lista de temas.");
+    .note("Edite o visual escolhendo <b>Tela de inicialização (splash)</b> na lista de temas.");
   f.section("Telemetria").seg("GPU", "gpu_backend", [["auto", "Auto (leve)"], ["nvml", "NVML"], ["pdh", "PDH"]], "auto")
     .note("NVML traz watts e fan % reais da NVIDIA, mas usa ~19 MB a mais de RAM. Requer reiniciar o serviço.")
     .text("Disco", "disk_mount").num("Cache anim. MB", "anim_cache_mb", { min: 1, max: 512 });

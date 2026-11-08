@@ -1,181 +1,198 @@
-<div align="center">
+<p align="center">
+  <img src="./docs/img/splash.gif" width="400" alt="Dark Hub boot screen on the cooler display" />
+</p>
 
-<img src="docs/img/splash.gif" width="480" alt="Tela de inicialização Dark Hub no display">
+<h1 align="center">Kalkan-RS</h1>
 
-# Kalkan-RS · Dark Hub
+<p align="center">
+  Lightweight panel and driver, written in Rust, for the display of the <b>Kalkan Aura LCD 240</b> water cooler.<br/>
+  Replaces the official software (WPF, 400 MB+ of RAM) with a ~22 MB native service and a canvas-style theme editor.
+</p>
 
-**Painel e driver de alta performance, em Rust, para o display AIO KALKAN / GAMDIAS ZEUS CAST (320×240)**
-Substitui o software oficial (WPF, 400 MB+ de RAM) por um serviço nativo de ~22 MB e um editor visual no estilo canvas.
+<p align="center">
+  <a href="https://github.com/Pokeralho/kalkan-rs/releases/latest"><img src="https://img.shields.io/github/v/release/Pokeralho/kalkan-rs?style=flat-square&label=release" alt="Latest release" /></a>
+  <a href="https://github.com/Pokeralho/kalkan-rs/releases"><img src="https://img.shields.io/github/downloads/Pokeralho/kalkan-rs/total?style=flat-square" alt="Downloads" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT license" /></a>
+  <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011%20x64-informational?style=flat-square" alt="Windows 10/11 x64" />
+  <img src="https://img.shields.io/badge/rust-stable-orange?style=flat-square" alt="Rust stable" />
+</p>
 
-![Rust](https://img.shields.io/badge/Rust-1.80%2B-orange?logo=rust)
-![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows)
-![Tauri](https://img.shields.io/badge/Studio-Tauri%202-24C8DB?logo=tauri)
-![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-green)
+<p align="center">
+  <b>English</b> · <a href="./README.pt-BR.md">Português</a>
+</p>
 
-</div>
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#themes">Themes</a> ·
+  <a href="#kalkan-studio">Studio</a> ·
+  <a href="#configuration">Configuration</a> ·
+  <a href="#performance">Performance</a> ·
+  <a href="#building-from-source">Build</a>
+</p>
+
+<p align="center">
+  <img src="./docs/img/studio.png" width="94%" alt="Kalkan Studio editing the Dark Hub theme" />
+</p>
 
 ---
 
-## ✨ Destaques
+## Hardware
 
-| | |
-|---|---|
-| ⚡ **Leve** | ~22 MB de RAM e ~0,04% de CPU com temas estáticos. Sem .NET, sem ffmpeg. |
-| 🎨 **Extremamente customizável** | Temas em TOML com camadas, expressões, condições, regras de cor, animações, brilho, paleta e formas livres. |
-| 🖌️ **Kalkan Studio** | Editor visual: arrastar, redimensionar, guias magnéticas, camadas, desfazer/refazer e pré-visualização idêntica ao display. |
-| 🎞️ **Mídia** | MP4/H.264/HEVC via Media Foundation, GIF/WebP/APNG com cache, imagens estáticas. |
-| 📊 **Telemetria completa** | CPU (uso por núcleo, clock, temperatura), GPU (NVIDIA/AMD/Intel), RAM, disco, rede, música tocando e clima. |
-| 🔁 **Hot-reload** | Salvou o tema, o display atualiza na hora. O `config.toml` também é aplicado ao vivo. |
-| 🎵 **Modo música** | Capa, player com tempo/duração e **letra sincronizada** (karaokê), com fundo e cores que se adaptam à capa. Entra sozinho quando você dá play. |
-| 🧊 **Tela de inicialização Dark Hub** | Floco animado com brilho, e você pode editar ou trocar como qualquer outro tema. |
+Built for the **Kalkan Aura LCD 240** water cooler, whose pump block carries a 320×240 display
+(USB `VID 0x1B80` / `PID 0xB550`, exposed by Windows as a serial COM port). The same display and protocol are used
+by GAMDIAS ZEUS CAST software, so other coolers that ship with the same `LcdComm.dll` should work too, but only the
+Kalkan Aura LCD 240 has been tested.
 
-## 🖼️ Galeria
+## Install
+
+1. Download `Kalkan-RS-x.y.z-win-x64.zip` from the [latest release](https://github.com/Pokeralho/kalkan-rs/releases/latest)
+   and extract it anywhere (for example `C:\Tools\Kalkan-RS`).
+2. Keep the **official Kalkan software installed** but **closed**. Kalkan-RS talks to the display through the vendor's
+   `LcdComm.dll` (looked up in `C:\Program Files\KALKAN\`), which is not redistributed here, and two programs cannot
+   share the same COM port.
+3. Run `kalkan-rs.exe`. An icon appears in the system tray; the display shows the boot screen and then the active theme.
+
+To start with Windows, put a shortcut to `kalkan-rs.exe` in `shell:startup`.
+
+Requirements: Windows 10 or 11, 64-bit. Kalkan Studio uses WebView2, which ships with Windows 11 (on Windows 10,
+install the [Evergreen runtime](https://developer.microsoft.com/microsoft-edge/webview2/) if Studio does not open).
+
+---
+
+## Features
+
+### Display service
+- **Light**: ~22 MB of RAM and ~0.04% CPU with static themes. No .NET, no bundled ffmpeg.
+- **Driver**: triple-buffered frames that never block rendering, keep-alive, automatic reconnection when the USB
+  cable comes back, and identical frames are not resent.
+- **Tray menu**: themes, brightness, max FPS, rotation, flip/mirror, silent mode, automatic music mode, reload and
+  a shortcut to Kalkan Studio. Changes made by Studio to `config.toml` are applied within a second.
+- **Boot screen**: an animated Dark Hub snowflake. It is a regular theme and can be edited or replaced.
+
+### Music mode
+- **Now Playing**: album art, title, artist, elapsed time, duration, progress bar and **synced lyrics**
+  (karaoke style, smooth scrolling) from [LRCLIB](https://lrclib.net).
+- **Adaptive look**: the background can be the blurred album art, and colors extracted from the cover
+  (`$album_vibrant`, `$album_light`, ...) recolor the whole theme on every track.
+- **Automatic**: when something starts playing (Spotify, browsers, any app on the Windows media session) the display
+  switches to the music theme, and goes back a few seconds after you pause. Can be turned off.
+
+### Telemetry
+- **CPU**: total and per-core usage, effective clock, temperature, power.
+- **GPU**: temperature, usage, clock, VRAM and fan through D3DKMT (NVIDIA, AMD and Intel, no vendor library loaded).
+  NVML is optional for power draw and fan percentage.
+- **Memory, disk, network**, media session and weather ([Open-Meteo](https://open-meteo.com), off by default).
+- Values that Windows does not expose without a kernel driver (Tdie, CPU watts, GPU hotspot) are read from
+  LibreHardwareMonitor when it is running, and shown as unavailable otherwise, never estimated.
+
+### Media backgrounds
+- MP4 / H.264 / HEVC decoded by Windows Media Foundation, animated GIF / WebP / APNG cached in memory,
+  static images, solid colors and album art.
+
+---
+
+## Themes
+
+A theme is a folder in `assets/themes/` with a `theme.toml`. Saving the file updates the display immediately.
 
 | Now Playing | Dark Hub | Cyberpunk |
 |:-:|:-:|:-:|
-| ![](docs/img/now_playing.gif) | ![](docs/img/theme_dark_hub.png) | ![](docs/img/cyberpunk.gif) |
-| **Minimal Clean** | **Neon Shapes** | **Tela de inicialização** |
-| ![](docs/img/theme_minimal_stats.png) | ![](docs/img/theme_neon_shapes.png) | ![](docs/img/theme_splash.png) |
+| ![](./docs/img/now_playing.gif) | ![](./docs/img/theme_dark_hub.png) | ![](./docs/img/cyberpunk.gif) |
+| **Minimal Clean** | **Neon Shapes** | **Boot screen** |
+| ![](./docs/img/theme_minimal_stats.png) | ![](./docs/img/theme_neon_shapes.png) | ![](./docs/img/theme_splash.png) |
 
-<sub>Imagens do Now Playing geradas com `KALKAN_DEMO_MEDIA=1` (faixa, capa e letra fictícias).</sub>
+<sub>Now Playing images were generated with `KALKAN_DEMO_MEDIA=1` (fictional track, cover and lyrics).</sub>
 
-<p align="center"><img src="docs/img/studio.png" width="900" alt="Kalkan Studio"></p>
-
-## 🚀 Começando
-
-### Requisitos
-- Windows 10/11 x64 com o display KALKAN/GAMDIAS conectado (aparece como uma porta COM).
-- O software oficial **instalado**, porque o kalkan-rs usa a `LcdComm.dll` dele, que não é redistribuída aqui. Ela é procurada em `C:\Program Files\KALKAN\`, na pasta do executável ou no caminho definido em `dll_path`.
-- **Feche o software oficial.** Dois programas não podem usar a mesma porta COM ao mesmo tempo.
-- Para compilar: [Rust](https://rustup.rs) estável (toolchain MSVC). O WebView2 (necessário para o Studio) já vem no Windows 11.
-
-### Compilar
-
-```bash
-cargo build --release --workspace
-```
-
-Gera `target\release\kalkan-rs.exe` (serviço, ~2,5 MB) e `target\release\kalkan-studio.exe` (editor). Mantenha os dois na mesma pasta, junto com a pasta `assets\`.
-
-### Usar
-
-```bash
-target\release\kalkan-rs.exe
-```
-
-O ícone aparece na bandeja do Windows. Pelo menu dá para trocar tema, brilho, FPS, rotação, inverter/espelhar a imagem, ativar o modo silencioso, abrir o **Kalkan Studio** e recarregar. Para iniciar junto com o Windows, coloque um atalho em `shell:startup`.
-
-| Comando | Efeito |
-|---|---|
-| `kalkan-rs` | Inicia o serviço com ícone na bandeja |
-| `kalkan-rs --theme dark_hub` | Inicia com um tema específico |
-| `kalkan-rs --no-tray` | Sem bandeja (Ctrl+C encerra) |
-| `kalkan-rs --preview <tema> [saida.png]` | Renderiza o tema em PNG, sem hardware, e mede o tempo |
-| `kalkan-rs --record <tema> <saida.gif> [s]` | Grava a animação do tema em GIF |
-| `kalkan-rs --list-themes` | Lista os temas |
-| `kalkan-rs --verbose` | Log detalhado em `kalkan-rs.log` |
-| `kalkan-studio` | Abre o editor visual |
-
-Use `splash` como nome de tema para pré-visualizar ou gravar a tela de inicialização.
-
-## ⚙️ Configuração
-
-O `config.toml` é criado ao lado do executável. Copie [`config.example.toml`](config.example.toml) para ver todas as opções. As principais:
-
-| Chave | Padrão | Descrição |
-|---|---|---|
-| `active_theme` | `"cyberpunk"` | Pasta do tema em `assets/themes/` |
-| `brightness` | `80` | Brilho do painel (0–100) |
-| `max_fps` | `24` | FPS máximo (1–30). Fundos animados custam CPU proporcional ao FPS |
-| `rotation` | `0` | Rotação de hardware: 0/90/180/270 |
-| `flip_vertical` / `flip_horizontal` | `true` / `true` | Orientação do painel (180° na montagem padrão) |
-| `splash` / `splash_ms` | `true` / `2600` | Tela de inicialização e duração em ms |
-| `music_mode` / `music_theme` | `true` / `"now_playing"` | Troca para o tema de música enquanto algo toca |
-| `music_return_s` | `8` | Segundos pausado até voltar ao tema normal |
-| `lyrics` | `true` | Busca letras sincronizadas no [LRCLIB](https://lrclib.net) (envia título/artista) |
-| `gpu_backend` | `"auto"` | `auto` (D3DKMT, leve), `nvml` (watts e fan %, +19 MB de RAM) ou `pdh` |
-| `weather_lat` / `weather_lon` | — | Liga o clima (Open-Meteo, sem chave de API) |
-
-Mudanças feitas pela bandeja ou pelo Studio são gravadas aqui, e o serviço aplica em cerca de 1 s.
-
-## 🎨 Temas em 30 segundos
-
-Cada pasta `assets/themes/<nome>/` que contém um `theme.toml` é um tema. Os recursos mais usados:
+- **Layers**: text, radial gauges, bars, sparklines, per-core grid, free-form shapes (polygons, stars, ellipses, lines,
+  radial repetition), images, album art and synced lyrics.
+- **Expressions** in placeholders and metrics: `{cpu_temp*1.8+32:.0}°F`, `ram_used_gb / ram_total_gb * 100`,
+  with functions such as `max`, `clamp` and `if`.
+- **Behaviors on any layer**: `visible_if` conditions, `color_rules`, animations (pulse, blink, spin, marquee,
+  fade, slide), glow and layer opacity.
+- **Palette**: named colors used as `$accent` anywhere, plus the colors extracted from the playing album.
 
 ```toml
-[meta]
-name = "Meu tema"
-font = "bahnschrift.ttf"          # fonte padrão dos textos
-
-[palette]                          # cores nomeadas, usadas como $nome
-accent = "#38E1F0"
-
-[background]
-type = "video"                     # video | gif | static | solid
-path = "bg.mp4"
-dim = 0.3
-
 [[widgets.text]]
-text = "{cpu_temp:.0}°C  ({cpu_temp*1.8+32:.0}°F)"   # placeholders aceitam expressões
+text = "{cpu_temp:.0}°C"
 x = 160
 y = 120
 align = "center"
 color_hex = "$accent"
-color_rules = [{ when = "cpu_temp >= 85", color = "#FF3B5C" }]  # cor condicional
-glow = "$accent"                                                 # brilho
-
-[[widgets.text]]
-text = "♪ {media_title}"
-x = 10
-y = 220
-max_width = 300
-visible_if = "media_playing == 1"   # só aparece com música tocando
-animation = "marquee"               # rola se não couber
-
-[[widgets.shape]]                   # forma livre
-kind = "star"
-x = 130
-y = 60
-width = 60
-height = 60
-fill_gradient = ["#FFE600", "#FF2BD6"]
-metric = "gpu_usage"                # enche conforme o uso
-animation = "spin"
+color_rules = [{ when = "cpu_temp >= 85", color = "#FF3B5C" }]
+glow = "$accent/40"
 ```
 
-**Tipos de camada:** `text`, `radial_gauge`, `bar`, `sparkline`, `cores`, `shape`, `rect`, `image`, `album_art` e `lyrics`.
+Full reference (in Portuguese): [docs/THEMES.md](./docs/THEMES.md).
 
-**Música:** fundo `type = "album"` (capa desfocada), cores `$album_vibrant`, `$album_light`, `$album_dark`, `$album_dominant` (extraídas da capa) e placeholders `{media_position_str}`, `{media_duration_str}` e `{lyrics_line}`.
+## Kalkan Studio
 
-**Comportamentos disponíveis em qualquer camada:** `visible_if`, `color_rules`, `animation` (`pulse`, `blink`, `spin`, `marquee`, `fade_in`, `slide_up`), `glow`, `layer_opacity`.
+A visual editor (Tauri 2) opened from the tray. The canvas is drawn by the same engine that feeds the display,
+with live telemetry, so what you see is exactly what the cooler shows.
 
-📖 **Referência completa:** [docs/THEMES.md](docs/THEMES.md) · **Editor:** [docs/STUDIO.md](docs/STUDIO.md)
+- Move and resize on the canvas with magnetic guides, edit shape points, reorder, hide and lock layers, undo/redo.
+- Inspector with color picker (alpha), gradient editor, placeholder chips and system font search.
+- Ready-made blocks: full music player, clock, CPU/GPU cards, network graph, liquid gauge.
+- Display settings: brightness, FPS, orientation, boot screen, music mode, lyrics, GPU backend.
 
-## 📈 Desempenho
+<p align="center">
+  <img src="./docs/img/studio_now_playing.png" width="94%" alt="Kalkan Studio editing the Now Playing theme" />
+</p>
 
-Medições em um Ryzen de 16 threads com uma RTX 5060:
+Guide (in Portuguese): [docs/STUDIO.md](./docs/STUDIO.md).
 
-| Cenário | CPU total | RAM privada |
+---
+
+## Configuration
+
+`config.toml` is created next to the executable. See [config.example.toml](./config.example.toml) for every option.
+
+| Key | Default | Description |
 |---|---|---|
-| Tema estático (relógio, telemetria) | ~0,04% | ~19 MB |
-| Fundo animado, 24 fps | ~0,3–0,45% | ~22 MB |
-| Modo música (capa, player, letra) | ~0,1% | ~23 MB |
-| Conversão de um quadro para RGB565 (AVX2) | ~8 µs | — |
+| `active_theme` | `"dark_hub"` | Theme folder in `assets/themes/` |
+| `brightness` | `80` | Panel brightness (0–100) |
+| `max_fps` | `24` | 1–30. Animated backgrounds cost CPU in proportion to FPS |
+| `flip_vertical` / `flip_horizontal` | `true` / `true` | Orientation (180° matches the Kalkan Aura LCD 240 mounting) |
+| `music_mode` / `music_theme` | `true` / `"now_playing"` | Switch to the music theme while something plays |
+| `lyrics` | `true` | Fetch synced lyrics from LRCLIB (sends title, artist, album and duration) |
+| `splash` / `splash_ms` | `true` / `2600` | Boot screen and its duration |
+| `gpu_backend` | `"auto"` | `auto` (D3DKMT), `nvml` (adds power and fan %, ~19 MB more RAM) or `pdh` |
 
-Cerca de 85% da CPU gasta em fundos animados é do driver USB do Windows (`usbser.sys`), e esse custo é proporcional aos bytes enviados. Por isso o FPS é configurável e quadros repetidos não são reenviados. Os detalhes estão em [docs/PROTOCOL.md](docs/PROTOCOL.md).
+Command line: `--theme <name>`, `--no-tray`, `--preview <theme> [out.png]`, `--record <theme> <out.gif> [s]`,
+`--list-themes`, `--verbose`.
 
-## 🗂️ Documentação
+## Performance
 
-| Documento | Conteúdo |
-|---|---|
-| [docs/THEMES.md](docs/THEMES.md) | Referência de todas as camadas, propriedades, placeholders, expressões e animações |
-| [docs/STUDIO.md](docs/STUDIO.md) | Guia do editor visual e atalhos |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Threads, pipeline de renderização, telemetria e mídia |
-| [docs/PROTOCOL.md](docs/PROTOCOL.md) | Engenharia reversa da `LcdComm.dll` e do protocolo USB |
-| [CHANGELOG.md](CHANGELOG.md) | Histórico de versões |
+Measured on a 16-thread Ryzen with an RTX 5060.
 
-## ⚖️ Aviso
+| Scenario | Total CPU | Private RAM |
+|---|---|---|
+| Static theme (clock, telemetry) | ~0.04% | ~19 MB |
+| Music mode (album art, player, lyrics) | ~0.1% | ~23 MB |
+| Animated background, 24 FPS | ~0.3–0.45% | ~22 MB |
 
-Projeto independente, sem afiliação com a GAMDIAS ou a KALKAN. Ele não inclui nem redistribui arquivos do fabricante: usa a `LcdComm.dll` já instalada no seu computador. Use por sua conta e risco.
+About 85% of the CPU spent on animated backgrounds is the Windows USB serial driver (`usbser.sys`) moving
+~3 MB/s, which is why FPS is configurable. The reverse-engineered protocol is documented in
+[docs/PROTOCOL.md](./docs/PROTOCOL.md).
 
-Licenciado sob a [MIT](LICENSE).
+---
+
+## Building from source
+
+Requires stable [Rust](https://rustup.rs) with the MSVC toolchain.
+
+```bash
+cargo build --release --workspace
+cargo test --release -p kalkan-rs
+```
+
+This produces `target\release\kalkan-rs.exe` (service) and `target\release\kalkan-studio.exe` (editor). Keep both
+next to the `assets\` folder. Architecture notes: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+Changes per version: [CHANGELOG.md](./CHANGELOG.md).
+
+## Disclaimer
+
+Independent project, not affiliated with Kalkan or GAMDIAS. It does not include or redistribute any vendor file;
+it uses the `LcdComm.dll` already installed by the official software. Use at your own risk.
+
+Released under the [MIT license](./LICENSE).
