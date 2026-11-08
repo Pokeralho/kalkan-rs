@@ -1,6 +1,6 @@
 [package]
 name = "kalkan-rs"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 description = "Painel e driver em Rust para o display do water cooler Kalkan Aura LCD 240 (320x240 RGB565)"
 license = "MIT"

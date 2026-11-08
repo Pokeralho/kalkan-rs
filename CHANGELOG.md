@@ -2,6 +2,12 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.3.1] — 2026-11-08
+
+### Corrigido
+- Se o `theme.toml` sumisse por um instante (git checkout, sincronização do OneDrive, editores que salvam apagando e recriando o arquivo), o display ficava preso na tela "ERRO NO TEMA". Agora o tema atual continua na tela e o arquivo é lido de novo a cada 1 s até voltar.
+- O hot-reload parava de funcionar se a pasta do tema fosse removida e recriada. Além do watcher do sistema, a pasta do tema exibido é conferida uma vez por segundo.
+
 ## [0.3.0] — 2026-11-08
 
 ### Adicionado

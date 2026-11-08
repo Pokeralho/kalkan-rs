@@ -390,6 +390,34 @@ pub struct RenderSettings {
     pub music: Option<(PathBuf, Duration)>,
 }
 
+/// Assinatura barata da pasta do tema (nome, tamanho e data de cada arquivo):
+/// detecta edições mesmo se o watcher do sistema parar de funcionar.
+fn dir_signature(dir: &Path) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    if let Ok(rd) = std::fs::read_dir(dir) {
+        let mut items: Vec<_> = rd
+            .flatten()
+            .filter_map(|e| {
+                let m = e.metadata().ok()?;
+                Some((e.file_name(), m.len(), m.modified().ok()))
+            })
+            .collect();
+        items.sort_by(|a, b| a.0.cmp(&b.0));
+        items.hash(&mut h);
+    } else {
+        0u8.hash(&mut h);
+    }
+    h.finish()
+}
+
+/// O `theme.toml` (ou a pasta) sumiu? Típico de checkouts/sincronizações em andamento.
+fn is_missing(e: &anyhow::Error) -> bool {
+    e.chain().any(|c| c.downcast_ref::<std::io::Error>().is_some_and(|io| {
+        matches!(io.kind(), std::io::ErrorKind::NotFound) || io.raw_os_error() == Some(3)
+    }))
+}
+
 fn load_or_error(dir: &Path, s: &RenderSettings) -> Theme {
     Theme::load(dir, &s.fonts_dir, s.cache_bytes).unwrap_or_else(|e| {
         log::error!("tema {}: {e:#}", dir.display());
@@ -451,6 +479,10 @@ pub fn run_render_thread(
     let mut last_frame = Instant::now() - Duration::from_secs(1);
     let mut animating = false;
     let mut reload_at: Option<Instant> = None;
+    let mut reload_retries = 0u32;
+    let mut sig_dir = settings.theme_dir.clone();
+    let mut sig = dir_signature(&sig_dir);
+    let mut sig_checked = Instant::now();
     let mut dirty = true;
     let mut silent_sent = false;
     let mut bg_dirty = true;
@@ -530,14 +562,47 @@ pub fn run_render_thread(
             theme = load_or_error(&settings.theme_dir, &settings);
             dirty = true;
         }
+        // Pasta do tema exibido agora (ativo ou de música).
+        let cur_dir = match (&settings.music, in_music) {
+            (Some((m, _)), true) => m.clone(),
+            _ => settings.theme_dir.clone(),
+        };
+        // Verificação de segurança 1x/s: não depende do watcher do sistema.
+        if now.duration_since(sig_checked) >= Duration::from_secs(1) {
+            sig_checked = now;
+            let s = dir_signature(&cur_dir);
+            if cur_dir != sig_dir {
+                sig_dir = cur_dir.clone();
+                sig = s;
+            } else if s != sig {
+                sig = s;
+                if reload_at.is_none() {
+                    reload_at = Some(now + Duration::from_millis(300));
+                }
+            }
+        }
         if reload_at.is_some_and(|t| now >= t) && splash_until.is_none() {
             reload_at = None;
-            let dir = match (&settings.music, in_music) {
-                (Some((m, _)), true) => m.clone(),
-                _ => settings.theme_dir.clone(),
-            };
-            log::info!("hot-reload: {}", dir.display());
-            theme = load_or_error(&dir, &settings);
+            log::info!("hot-reload: {}", cur_dir.display());
+            match Theme::load(&cur_dir, &settings.fonts_dir, settings.cache_bytes) {
+                Ok(t) => {
+                    theme = t;
+                    reload_retries = 0;
+                }
+                // Arquivo sumiu por um instante (git checkout, sincronização): mantém o
+                // tema atual na tela e tenta de novo em vez de mostrar erro.
+                Err(e) if is_missing(&e) && reload_retries < 20 => {
+                    reload_retries += 1;
+                    log::warn!("tema indisponível no momento ({e:#}); nova tentativa em 1 s");
+                    reload_at = Some(now + Duration::from_secs(1));
+                }
+                Err(e) => {
+                    log::error!("tema {}: {e:#}", cur_dir.display());
+                    theme = Theme::error(&cur_dir, &settings.fonts_dir, &e);
+                    reload_retries = 0;
+                }
+            }
+            sig = dir_signature(&cur_dir);
             dirty = true;
         }
 

@@ -1776,7 +1776,7 @@ dependencies = [
 
 [[package]]
 name = "kalkan-rs"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "ab_glyph",
  "anyhow",
@@ -1798,7 +1798,7 @@ dependencies = [
 
 [[package]]
 name = "kalkan-studio"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "kalkan-rs",
