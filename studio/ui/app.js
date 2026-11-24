@@ -1041,6 +1041,121 @@ function renderPalette(root) {
   root.appendChild(sec);
 }
 
+/** Converte um evento de teclado em "Ctrl+Alt+F23" (formato aceito pelo serviço). */
+function comboFromEvent(e) {
+  const mods = [];
+  if (e.ctrlKey) mods.push("Ctrl");
+  if (e.altKey) mods.push("Alt");
+  if (e.shiftKey) mods.push("Shift");
+  if (e.metaKey) mods.push("Win");
+  let k = null;
+  if (/^F([1-9]|1[0-9]|2[0-4])$/.test(e.key)) k = e.key;
+  else if (/^Numpad[0-9]$/.test(e.code)) k = "Num" + e.code.slice(6);
+  else if (/^Key[A-Z]$/.test(e.code)) k = e.code.slice(3);
+  else if (/^Digit[0-9]$/.test(e.code)) k = e.code.slice(5);
+  else k = { Pause: "Pause", ScrollLock: "ScrollLock", Insert: "Insert", Home: "Home", End: "End", PageUp: "PageUp", PageDown: "PageDown", PrintScreen: "PrintScreen" }[e.code] || null;
+  return k ? [...mods, k].join("+") : null;
+}
+
+/** Gatilhos: troca de tema por programa aberto, condição ou atalho de teclado. */
+function renderTriggers(root, c, save) {
+  c.triggers ??= [];
+  const sec = document.createElement("div");
+  sec.className = "section";
+  sec.innerHTML = "<h4>Gatilhos</h4>";
+  const themes = (S.themes || []).filter((t) => !t.splash).map((t) => [t.id, t.name]);
+  const commit = (rerender = false) => { save(); if (rerender) renderDevice(); };
+
+  c.triggers.forEach((t, i) => {
+    const card = document.createElement("div");
+    card.className = "trigger" + (t.disabled ? " off" : "");
+    const head = document.createElement("div");
+    head.className = "trigger-head";
+    const kind = seg([["process", "Programa"], ["condition", "Condição"], ["hotkey", "Atalho"]], t.kind, (v) => { t.kind = v; commit(true); });
+    head.appendChild(kind);
+    const onoff = document.createElement("button");
+    onoff.className = "mini-btn"; onoff.title = t.disabled ? "Ativar" : "Desativar"; onoff.textContent = t.disabled ? "Ativar" : "Pausar";
+    onoff.onclick = () => { t.disabled = !t.disabled; if (!t.disabled) delete t.disabled; commit(true); };
+    const del = document.createElement("button");
+    del.className = "x-btn"; del.textContent = "✕"; del.title = "Remover";
+    del.onclick = () => { c.triggers.splice(i, 1); commit(true); };
+    head.append(onoff, del);
+    card.appendChild(head);
+
+    const row = (label, el) => {
+      const r = document.createElement("div"); r.className = "row";
+      const lb = document.createElement("label"); lb.textContent = label;
+      const ctl = document.createElement("div"); ctl.className = "ctl"; ctl.appendChild(el);
+      r.append(lb, ctl); card.appendChild(r); return el;
+    };
+    const input = (val, ph, on, mono = false) => {
+      const el = document.createElement("input");
+      el.value = val ?? ""; el.placeholder = ph; el.spellcheck = false;
+      if (mono) el.style.fontFamily = "var(--mono)";
+      el.onchange = () => { on(el.value.trim()); commit(); };
+      return el;
+    };
+
+    if (t.kind === "process") {
+      row("Programa", input(t.process, "GTA5.exe, eldenring.exe", (v) => (t.process = v), true));
+      const fg = seg([[false, "Aberto"], [true, "Em foco"]], !!t.foreground_only, (v) => { if (v) t.foreground_only = true; else delete t.foreground_only; commit(true); });
+      row("Quando", fg);
+    } else if (t.kind === "condition") {
+      row("Condição", input(t.condition, "gpu_temp >= 80", (v) => (t.condition = v), true)).setAttribute("list", "metricList");
+    } else {
+      const key = input(t.key, "clique e pressione as teclas", () => {}, true);
+      key.readOnly = true;
+      key.onkeydown = (e) => {
+        e.preventDefault();
+        const combo = comboFromEvent(e);
+        if (combo) { key.value = combo; t.key = combo; commit(); }
+      };
+      row("Atalho", key);
+    }
+
+    const sel = document.createElement("select");
+    const opts = t.kind === "hotkey" ? [["@next", "Próximo tema"], ["@previous", "Tema anterior"], ...themes] : themes;
+    for (const [v, n] of opts) sel.add(new Option(n, v));
+    sel.value = t.theme || "";
+    if (!sel.value && opts.length) { t.theme = opts[0][0]; sel.value = t.theme; }
+    sel.onchange = () => { t.theme = sel.value; commit(); };
+    row("Tema", sel);
+
+    if (t.kind !== "hotkey") {
+      const adv = document.createElement("div");
+      adv.className = "grid3";
+      const num = (label, key, ph) => {
+        const w = document.createElement("label"); w.className = "mini-field"; w.textContent = label;
+        const el = document.createElement("input"); el.type = "number"; el.step = "any"; el.placeholder = ph; el.value = t[key] ?? "";
+        el.onchange = () => { if (el.value === "") delete t[key]; else t[key] = +el.value; commit(); };
+        w.appendChild(el); adv.appendChild(w);
+      };
+      num("Prioridade", "priority", "0");
+      num("Ativar após (s)", "hold_s", t.kind === "condition" ? "3" : "0");
+      num("Voltar após (s)", "release_s", "5");
+      card.appendChild(adv);
+    }
+    sec.appendChild(card);
+  });
+
+  const add = document.createElement("div");
+  add.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;margin-top:4px";
+  for (const [kind, label, tpl] of [
+    ["process", "+ Programa", { process: "GTA5.exe" }],
+    ["condition", "+ Condição", { condition: "gpu_temp >= 80" }],
+    ["hotkey", "+ Atalho", { key: "" }],
+  ]) {
+    const b = document.createElement("button"); b.className = "btn small"; b.textContent = label;
+    b.onclick = () => { c.triggers.push({ kind, theme: themes[0]?.[0] || "", ...tpl }); commit(true); };
+    add.appendChild(b);
+  }
+  sec.appendChild(add);
+  const p = document.createElement("p"); p.className = "note";
+  p.innerHTML = "Programa e Condição trocam o tema enquanto valem e voltam sozinhos (o de maior prioridade vence, acima do modo música). Atalhos trocam o tema ativo, como a bandeja. Aplicado pelo serviço em ~1 s.";
+  sec.appendChild(p);
+  root.appendChild(sec);
+}
+
 async function renderDevice() {
   const root = $("#tab-device");
   root.innerHTML = "";
@@ -1056,6 +1171,7 @@ async function renderDevice() {
     .note("Padrão 24. Fundos animados custam CPU proporcional ao FPS (driver USB do Windows): ~0,30% a 15 fps, ~0,43% a 30 fps. Temas estáticos quase não são afetados.");
   f.section("Sistema").check("Iniciar com o Windows", "autostart", false)
     .note("Cria a entrada em <code>HKCU\\…\\Run</code> (só para o seu usuário, sem administrador). Aplicado pelo serviço em ~1 s.");
+  renderTriggers(root, c, save);
   f.section("Música").check("Modo automático", "music_mode", true)
     .text("Tema da música", "music_theme", { placeholder: "now_playing" })
     .num("Voltar após (s)", "music_return_s", { min: 1, max: 600, def: 8 })

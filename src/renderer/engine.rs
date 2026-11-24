@@ -374,6 +374,8 @@ pub enum RenderCmd {
     MaxFps(u32),
     /// Modo música: (pasta do tema de música, tempo pausado até voltar).
     Music(Option<(PathBuf, Duration)>),
+    /// Novos gatilhos de processo/condição.
+    Triggers(Vec<crate::triggers::TriggerDef>),
     Quit,
 }
 
@@ -388,6 +390,8 @@ pub struct RenderSettings {
     pub splash: Option<(PathBuf, Duration)>,
     /// Modo música automático: (pasta do tema de música, tempo pausado até voltar).
     pub music: Option<(PathBuf, Duration)>,
+    /// Gatilhos que sobrepõem o tema (processo/condição).
+    pub triggers: Vec<crate::triggers::TriggerDef>,
 }
 
 /// Assinatura barata da pasta do tema (nome, tamanho e data de cada arquivo):
@@ -471,6 +475,12 @@ pub fn run_render_thread(
     let mut paused_since: Option<Instant> = None;
     // Escolha manual de tema durante a música: respeita até a música parar.
     let mut music_suppressed = false;
+    // Gatilhos: tema sobreposto atual e supressão após escolha manual.
+    let mut triggers = crate::triggers::TriggerEngine::new(&settings.triggers);
+    let mut trigger_theme: Option<String> = None;
+    let mut trigger_suppressed: Option<String> = None;
+    // Pasta do tema que está na tela (a arbitragem decide qual deveria estar).
+    let mut shown_dir = if splash_until.is_some() { PathBuf::new() } else { settings.theme_dir.clone() };
 
     let mut canvas = Canvas::new();
     let mut back: Frame565 = blank_frame();
@@ -521,17 +531,25 @@ pub fn run_render_thread(
                     splash_until = None;
                     music_suppressed = in_music || hub.get().media_playing;
                     in_music = false;
+                    // Escolha manual vence o gatilho ativo até ele terminar.
+                    trigger_suppressed = trigger_theme.clone();
                     settings.theme_dir = dir;
                     theme = load_or_error(&settings.theme_dir, &settings);
+                    shown_dir = settings.theme_dir.clone();
                     dirty = true;
                 }
                 Ok(RenderCmd::Music(m)) => {
                     settings.music = m;
-                    if settings.music.is_none() && in_music {
+                    if settings.music.is_none() {
                         in_music = false;
-                        theme = load_or_error(&settings.theme_dir, &settings);
-                        dirty = true;
                     }
+                }
+                Ok(RenderCmd::Triggers(t)) => {
+                    log::info!("gatilhos atualizados: {}", t.len());
+                    triggers = crate::triggers::TriggerEngine::new(&t);
+                    settings.triggers = t;
+                    trigger_theme = None;
+                    trigger_suppressed = None;
                 }
                 Ok(RenderCmd::Reload) => reload_at = Some(Instant::now()),
                 Ok(RenderCmd::MaxFps(f)) => {
@@ -560,13 +578,11 @@ pub fn run_render_thread(
         if splash_until.is_some_and(|t| now >= t) {
             splash_until = None;
             theme = load_or_error(&settings.theme_dir, &settings);
+            shown_dir = settings.theme_dir.clone();
             dirty = true;
         }
-        // Pasta do tema exibido agora (ativo ou de música).
-        let cur_dir = match (&settings.music, in_music) {
-            (Some((m, _)), true) => m.clone(),
-            _ => settings.theme_dir.clone(),
-        };
+        // Pasta do tema exibido agora (ativo, de música ou de gatilho).
+        let cur_dir = shown_dir.clone();
         // Verificação de segurança 1x/s: não depende do watcher do sistema.
         if now.duration_since(sig_checked) >= Duration::from_secs(1) {
             sig_checked = now;
@@ -633,7 +649,6 @@ pub fn run_render_thread(
                     if !in_music && !is_music_theme && !music_suppressed && mdir.join("theme.toml").is_file() {
                         log::info!("modo música: {}", mdir.display());
                         in_music = true;
-                        theme = load_or_error(&mdir, &settings);
                     }
                 } else if in_music {
                     let since = *paused_since.get_or_insert(now);
@@ -641,8 +656,37 @@ pub fn run_render_thread(
                         log::info!("modo música: voltando ao tema ativo");
                         in_music = false;
                         paused_since = None;
-                        theme = load_or_error(&settings.theme_dir, &settings);
                     }
+                }
+            }
+            // Gatilhos (processo / condição).
+            if !triggers.is_empty() {
+                let t = triggers.evaluate(&hub.get());
+                if t != trigger_theme {
+                    trigger_theme = t;
+                    // A escolha manual vale até o gatilho que estava ativo mudar.
+                    if trigger_suppressed.is_some() && trigger_suppressed != trigger_theme {
+                        trigger_suppressed = None;
+                    }
+                }
+            } else {
+                trigger_theme = None;
+            }
+            // Arbitragem: gatilho > modo música > tema ativo.
+            if splash_until.is_none() {
+                let trig_dir = trigger_theme
+                    .as_ref()
+                    .filter(|_| trigger_suppressed.is_none())
+                    .map(|n| themes_root.join(n))
+                    .filter(|d| d.join("theme.toml").is_file());
+                let want = match (trig_dir, &settings.music, in_music) {
+                    (Some(d), _, _) => d,
+                    (None, Some((m, _)), true) => m.clone(),
+                    _ => settings.theme_dir.clone(),
+                };
+                if want != shown_dir {
+                    theme = load_or_error(&want, &settings);
+                    shown_dir = want;
                 }
             }
         }

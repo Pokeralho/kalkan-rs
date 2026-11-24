@@ -81,6 +81,15 @@ install the [Evergreen runtime](https://developer.microsoft.com/microsoft-edge/w
 - **Automatic**: when something starts playing (Spotify, browsers, any app on the Windows media session) the display
   switches to the music theme, and goes back a few seconds after you pause. Can be turned off.
 
+### Triggers
+- **Program**: switch theme while an app is running, or only while it is in the foreground
+  (`GTA5.exe` → your gaming theme).
+- **Condition**: switch while an expression is true (`gpu_temp >= 80` → an alert theme), with delays to turn on and
+  back off so the display does not flicker.
+- **Hotkey**: a global shortcut such as `F23` or `Ctrl+Alt+1` that selects a theme, or the next/previous one.
+- Program and condition triggers win over music mode, the highest priority wins, and the display goes back on its
+  own when they end. Set them up in Studio (Display tab) or in `config.toml`.
+
 ### Telemetry
 - **CPU**: total and per-core usage, effective clock, temperature, power.
 - **GPU**: temperature, usage, clock, VRAM and fan through D3DKMT (NVIDIA, AMD and Intel, no vendor library loaded).
@@ -154,6 +163,7 @@ Guide (in Portuguese): [docs/STUDIO.md](./docs/STUDIO.md).
 |---|---|---|
 | `active_theme` | `"dark_hub"` | Theme folder in `assets/themes/` |
 | `autostart` | `false` | Start with Windows (current user, no admin) |
+| `[[triggers]]` | — | Theme triggers: `kind = "process"`, `"condition"` or `"hotkey"` (see below) |
 | `brightness` | `80` | Panel brightness (0–100) |
 | `max_fps` | `24` | 1–30. Animated backgrounds cost CPU in proportion to FPS |
 | `flip_vertical` / `flip_horizontal` | `true` / `true` | Orientation (180° matches the Kalkan Aura LCD 240 mounting) |
@@ -161,6 +171,26 @@ Guide (in Portuguese): [docs/STUDIO.md](./docs/STUDIO.md).
 | `lyrics` | `true` | Fetch synced lyrics from LRCLIB (sends title, artist, album and duration) |
 | `splash` / `splash_ms` | `true` / `2600` | Boot screen and its duration |
 | `gpu_backend` | `"auto"` | `auto` (D3DKMT), `nvml` (adds power and fan %, ~19 MB more RAM) or `pdh` |
+
+```toml
+[[triggers]]                 # GTA V in the foreground: gaming theme
+kind = "process"
+process = "GTA5.exe"
+foreground_only = true
+theme = "cyberpunk"
+priority = 5
+
+[[triggers]]                 # hot GPU: alert theme (on after 3 s, back after 10 s)
+kind = "condition"
+condition = "gpu_temp >= 80"
+theme = "minimal_stats"
+release_s = 10
+
+[[triggers]]                 # F23: next theme ("@previous" also works)
+kind = "hotkey"
+key = "F23"
+theme = "@next"
+```
 
 Command line: `--theme <name>`, `--no-tray`, `--autostart on|off`, `--preview <theme> [out.png]`, `--record <theme> <out.gif> [s]`,
 `--list-themes`, `--verbose`.

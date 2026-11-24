@@ -21,7 +21,7 @@ O Studio roda em um processo separado (~45 MB, por causa do WebView2) e só prec
 | **Canvas** | Selecionar, mover, redimensionar e editar pontos |
 | **Propriedades** | Campos do tipo da camada mais a seção **Comportamento**, comum a todas |
 | **Fundo** | Tipo de fundo (incluindo **capa** desfocada), importação de mídia, desfoque, escurecimento, nome do tema, fonte padrão e **paleta** |
-| **Display** | Brilho, FPS, rotação, inverter/espelhar, modo silencioso, **iniciar com o Windows**, **modo música** e letras, tela de inicialização, backend de GPU, clima |
+| **Display** | Brilho, FPS, rotação, inverter/espelhar, modo silencioso, **iniciar com o Windows**, **gatilhos** (programa, condição, atalho), **modo música** e letras, tela de inicialização, backend de GPU, clima |
 | **Dados** | Telemetria ao vivo; clique em um nome para copiar o placeholder |
 
 ## Edição no canvas
@@ -66,6 +66,21 @@ O Studio roda em um processo separado (~45 MB, por causa do WebView2) e só prec
 - **Salvar** (Ctrl+S) grava o `theme.toml` e guarda o anterior como `theme.toml.bak`. Se o tema estiver ativo, o display atualiza na hora (hot-reload).
 - **Exibir no display** define o tema como ativo no `config.toml`, e o serviço troca em cerca de 1 s.
 - **Camadas ocultas** não aparecem na pré-visualização, mas **continuam salvas** no arquivo.
+
+## Gatilhos
+
+Na aba **Display**, a seção **Gatilhos** cria regras que trocam o tema sozinhas:
+
+| Tipo | Quando vale | Campos |
+|---|---|---|
+| **Programa** | Enquanto o executável estiver aberto, ou só em foco | Nomes separados por vírgula (`GTA5.exe, eldenring.exe`) |
+| **Condição** | Enquanto a expressão for verdadeira | Qualquer expressão (`gpu_temp >= 80`, `hour >= 22`) |
+| **Atalho** | Ao pressionar a combinação | Clique no campo e pressione as teclas (aceita F13–F24, Ctrl/Alt/Shift/Win) |
+
+- **Prioridade:** quando mais de um gatilho de programa ou de condição vale ao mesmo tempo, vence o de maior prioridade. Esses gatilhos também ficam acima do modo música.
+- **Tempos:** "Ativar após" e "Voltar após" são em segundos e evitam trocas rápidas demais.
+- **Atalhos:** trocam o tema ativo, como escolher na bandeja, e podem apontar para "Próximo tema" ou "Tema anterior".
+- **Escolha manual:** se você escolher um tema pela bandeja ou por atalho enquanto um gatilho vale, a sua escolha é mantida até esse gatilho terminar.
 
 ## Temas de música
 

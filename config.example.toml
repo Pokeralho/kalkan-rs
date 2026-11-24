@@ -41,3 +41,27 @@ gpu_backend = "auto"       # auto (D3DKMT, leve) | nvml (+watts/fan%, ~19 MB) | 
 # Clima via Open-Meteo (sem chave). Deixe comentado para desativar.
 # weather_lat = -23.55
 # weather_lon = -46.63
+
+# Gatilhos: trocam o tema automaticamente (também editáveis no Studio, aba Display).
+# kind = "process"   → enquanto o programa estiver aberto (foreground_only = só em foco)
+# kind = "condition" → enquanto a expressão for verdadeira (hold_s / release_s evitam piscar)
+# kind = "hotkey"    → atalho global; theme também aceita "@next" e "@previous"
+# Gatilhos de programa/condição vencem o modo música; maior priority vence.
+#
+# [[triggers]]
+# kind = "process"
+# process = "GTA5.exe"
+# foreground_only = true
+# theme = "cyberpunk"
+# priority = 5
+#
+# [[triggers]]
+# kind = "condition"
+# condition = "gpu_temp >= 80"
+# theme = "minimal_stats"
+# release_s = 10
+#
+# [[triggers]]
+# kind = "hotkey"
+# key = "F23"
+# theme = "@next"

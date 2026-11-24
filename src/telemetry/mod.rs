@@ -74,6 +74,10 @@ pub struct Snapshot {
     pub weather_humidity: Option<f64>,
     pub weather_wind: Option<f64>,
     pub weather_desc: String,
+    /// Executáveis em execução (minúsculos), atualizados a cada 2 s.
+    pub processes: Arc<std::collections::HashSet<String>>,
+    /// Executável da janela em primeiro plano (minúsculo).
+    pub foreground_app: String,
     // Histórico
     pub history: HashMap<&'static str, VecDeque<f32>>,
 }
@@ -178,6 +182,7 @@ impl Snapshot {
             "media_artist" => self.media_artist.clone(),
             "media_album" => self.media_album.clone(),
             "weather_desc" if !self.weather_desc.is_empty() => self.weather_desc.clone(),
+            "foreground_app" => self.foreground_app.clone(),
             "media_state" => match (self.media_active, self.media_playing) {
                 (false, _) => "Stopped".into(),
                 (true, true) => "Playing".into(),
@@ -306,6 +311,7 @@ fn run(hub: Arc<TelemetryHub>, disk_mount: String, gpu_backend: String, weather:
     let mut mem = memory::MemoryCollector::new(pdh.as_ref(), disk_mount);
     let mut net = network::NetworkCollector::new();
     let mut media = media::MediaCollector::new(lyrics);
+    let mut proc_tick = 0u32;
 
     let mut snap = Snapshot::default();
     let period = Duration::from_secs(1);
@@ -327,6 +333,13 @@ fn run(hub: Arc<TelemetryHub>, disk_mount: String, gpu_backend: String, weather:
         mem.update(&mut snap, pdh.as_ref());
         net.update(&mut snap);
         media.update(&mut snap);
+        // Lista de processos (gatilhos): barata, mas não precisa ser a cada segundo.
+        if proc_tick % 2 == 0 {
+            let (names, fg) = crate::triggers::scan_processes();
+            snap.processes = Arc::new(names);
+            snap.foreground_app = fg;
+        }
+        proc_tick = proc_tick.wrapping_add(1);
         if let Some(w) = weather.as_ref().and_then(|c| c.lock().unwrap().clone()) {
             snap.weather_temp = Some(w.temp);
             snap.weather_humidity = Some(w.humidity);

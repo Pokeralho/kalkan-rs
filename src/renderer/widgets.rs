@@ -219,7 +219,7 @@ pub struct Template {
 
 pub const TEXT_KEYS: &[&str] = &[
     "cpu_name", "gpu_name", "media_title", "media_artist", "media_album", "media_state", "media_icon",
-    "net_down", "net_up", "disk_read", "disk_write", "weather_desc",
+    "net_down", "net_up", "disk_read", "disk_write", "weather_desc", "foreground_app",
     "media_position_str", "media_duration_str", "media_remaining_str", "lyrics_line", "lyrics_next", "lyrics_prev",
 ];
 

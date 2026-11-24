@@ -15,7 +15,7 @@ use tray_icon::{Icon, TrayIcon, TrayIconBuilder};
 use windows::core::{w, HSTRING};
 use windows::Win32::UI::Shell::ShellExecuteW;
 use windows::Win32::UI::WindowsAndMessaging::{
-    DispatchMessageW, GetMessageW, PostQuitMessage, SetTimer, TranslateMessage, MSG, SW_SHOWNORMAL, WM_TIMER,
+    DispatchMessageW, GetMessageW, PostQuitMessage, SetTimer, TranslateMessage, MSG, SW_SHOWNORMAL, WM_HOTKEY, WM_TIMER,
 };
 
 enum Action {
@@ -54,6 +54,8 @@ struct Tray {
     flip_h: CheckMenuItem,
     icon: TrayIcon,
     last_tip: String,
+    /// Atalhos registrados: (id, tema ou @next/@previous).
+    hotkeys: Vec<(i32, String)>,
 }
 
 /// Ícone 32x32 gerado em código: anel ciano/magenta sobre fundo escuro.
@@ -193,6 +195,7 @@ impl Tray {
             flip_h,
             icon,
             last_tip: String::new(),
+            hotkeys: Vec::new(),
         })
     }
 
@@ -258,6 +261,10 @@ impl Tray {
         if (c.music_mode, &c.music_theme, c.music_return_s) != (old.music_mode, &old.music_theme, old.music_return_s) {
             let _ = self.render.send(RenderCmd::Music(c.music_settings()));
         }
+        let triggers_changed = c.triggers != old.triggers;
+        if triggers_changed {
+            let _ = self.render.send(RenderCmd::Triggers(c.triggers.clone()));
+        }
         if c.autostart != old.autostart {
             crate::autostart::sync(c.autostart);
         }
@@ -270,6 +277,9 @@ impl Tray {
         if (c.flip_horizontal, c.flip_vertical) != (old.flip_horizontal, old.flip_vertical) {
             let o = crate::renderer::canvas::Orientation { flip_x: c.flip_horizontal, flip_y: c.flip_vertical };
             let _ = self.render.send(RenderCmd::Orientation(o));
+        }
+        if triggers_changed {
+            self.register_hotkeys();
         }
         log::info!("config.toml alterado externamente; aplicado");
         self.refresh_theme_list();
@@ -310,6 +320,61 @@ impl Tray {
     }
 
     /// Processa um clique de menu. Retorna `false` para encerrar.
+    /// (Re)registra os atalhos globais dos gatilhos `hotkey`.
+    fn register_hotkeys(&mut self) {
+        use windows::Win32::UI::Input::KeyboardAndMouse::{RegisterHotKey, UnregisterHotKey, HOT_KEY_MODIFIERS, MOD_NOREPEAT};
+        unsafe {
+            for (id, _) in self.hotkeys.drain(..) {
+                let _ = UnregisterHotKey(None, id);
+            }
+        }
+        let defs: Vec<_> = self.cfg.triggers.iter().filter(|t| t.kind == "hotkey" && !t.disabled).cloned().collect();
+        for (i, t) in defs.iter().enumerate() {
+            let Some((mods, vk)) = crate::triggers::parse_hotkey(&t.key) else {
+                log::warn!("atalho inválido: '{}'", t.key);
+                continue;
+            };
+            let id = 0x4B00 + i as i32;
+            match unsafe { RegisterHotKey(None, id, HOT_KEY_MODIFIERS(mods) | MOD_NOREPEAT, vk) } {
+                Ok(()) => {
+                    log::info!("atalho {} → {}", t.key, t.theme);
+                    self.hotkeys.push((id, t.theme.clone()));
+                }
+                // Outro programa já usa a combinação.
+                Err(e) => log::warn!("atalho {} indisponível: {e}", t.key),
+            }
+        }
+    }
+
+    fn on_hotkey(&mut self, id: i32) {
+        let Some(target) = self.hotkeys.iter().find(|(i, _)| *i == id).map(|(_, t)| t.clone()) else { return };
+        let themes = self.cfg.list_themes();
+        let name = match target.as_str() {
+            "@next" | "@previous" if !themes.is_empty() => {
+                let cur = themes.iter().position(|t| *t == self.cfg.active_theme).unwrap_or(0);
+                let n = themes.len();
+                let i = if target == "@next" { (cur + 1) % n } else { (cur + n - 1) % n };
+                themes[i].clone()
+            }
+            t if themes.iter().any(|x| x == t) => t.to_string(),
+            t => {
+                log::warn!("atalho: tema '{t}' não existe");
+                return;
+            }
+        };
+        self.switch_theme(&name);
+    }
+
+    /// Troca o tema ativo (bandeja, atalhos) e salva no config.
+    fn switch_theme(&mut self, name: &str) {
+        self.cfg.active_theme = name.to_string();
+        let _ = self.render.send(RenderCmd::SwitchTheme(self.cfg.theme_dir()));
+        self.cfg.save();
+        self.cfg_mtime = config_mtime();
+        self.sync_checks();
+        self.update_tooltip();
+    }
+
     fn handle(&mut self, id: &MenuId) -> bool {
         let Some(action) = self.actions.get(id) else { return true };
         match action {
@@ -388,11 +453,15 @@ fn config_mtime() -> Option<std::time::SystemTime> {
 pub fn run(cfg: Config, render: Sender<RenderCmd>, driver: Sender<DriverCmd>, status: Arc<DriverStatus>) -> Result<Config> {
     let mut tray = Tray::new(cfg, render, driver, status)?;
     tray.update_tooltip();
+    tray.register_hotkeys();
     unsafe {
         // Timer da thread para atualizar o tooltip (status de conexão).
         SetTimer(None, 0, 1000, None);
         let mut msg = MSG::default();
         'outer: while GetMessageW(&mut msg, None, 0, 0).as_bool() {
+            if msg.message == WM_HOTKEY {
+                tray.on_hotkey(msg.wParam.0 as i32);
+            }
             if msg.message == WM_TIMER {
                 tray.poll_external_config();
                 tray.update_tooltip();

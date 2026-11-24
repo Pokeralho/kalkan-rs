@@ -7,4 +7,5 @@ pub mod driver;
 pub mod media;
 pub mod renderer;
 pub mod telemetry;
+pub mod triggers;
 pub mod ui;

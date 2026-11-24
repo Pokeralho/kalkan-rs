@@ -80,6 +80,12 @@ Requisitos: Windows 10 ou 11, 64 bits. O Kalkan Studio usa o WebView2, que já v
 - **Visual adaptável**: o fundo pode ser a capa desfocada, e cores extraídas da capa (`$album_vibrant`, `$album_light`…) recolorem o tema inteiro a cada faixa.
 - **Automático**: quando algo começa a tocar (Spotify, navegadores, qualquer app na sessão de mídia do Windows), o display troca para o tema de música e volta alguns segundos depois de você pausar. Pode ser desligado.
 
+### Gatilhos
+- **Programa**: troca o tema enquanto um app está aberto, ou só enquanto ele está em primeiro plano (`GTA5.exe` → seu tema de jogo).
+- **Condição**: troca enquanto uma expressão é verdadeira (`gpu_temp >= 80` → um tema de alerta), com tempos para ligar e para voltar, para o display não piscar.
+- **Atalho**: um atalho global como `F23` ou `Ctrl+Alt+1` que escolhe um tema, ou o próximo/anterior.
+- Gatilhos de programa e de condição vencem o modo música, o de maior prioridade vence, e o display volta sozinho quando eles terminam. Configure no Studio (aba Display) ou no `config.toml`.
+
 ### Telemetria
 - **CPU**: uso total e por núcleo, clock efetivo, temperatura e consumo.
 - **GPU**: temperatura, uso, clock, VRAM e ventoinha via D3DKMT, em NVIDIA, AMD e Intel, sem carregar bibliotecas do fabricante. O NVML é opcional, para consumo e porcentagem da ventoinha.
@@ -148,6 +154,7 @@ O `config.toml` é criado ao lado do executável. Todas as opções estão em [c
 |---|---|---|
 | `active_theme` | `"dark_hub"` | Pasta do tema em `assets/themes/` |
 | `autostart` | `false` | Iniciar com o Windows (usuário atual, sem admin) |
+| `[[triggers]]` | — | Gatilhos de tema: `kind = "process"`, `"condition"` ou `"hotkey"` (veja abaixo) |
 | `brightness` | `80` | Brilho do painel (0–100) |
 | `max_fps` | `24` | 1–30. Fundos animados custam CPU proporcional ao FPS |
 | `flip_vertical` / `flip_horizontal` | `true` / `true` | Orientação (180° corresponde à montagem do Kalkan Aura LCD 240) |
@@ -155,6 +162,26 @@ O `config.toml` é criado ao lado do executável. Todas as opções estão em [c
 | `lyrics` | `true` | Busca letras sincronizadas no LRCLIB (envia título, artista, álbum e duração) |
 | `splash` / `splash_ms` | `true` / `2600` | Tela de inicialização e sua duração |
 | `gpu_backend` | `"auto"` | `auto` (D3DKMT), `nvml` (acrescenta consumo e ventoinha %, ~19 MB a mais de RAM) ou `pdh` |
+
+```toml
+[[triggers]]                 # GTA V em primeiro plano: tema de jogo
+kind = "process"
+process = "GTA5.exe"
+foreground_only = true
+theme = "cyberpunk"
+priority = 5
+
+[[triggers]]                 # GPU quente: tema de alerta (liga após 3 s, volta após 10 s)
+kind = "condition"
+condition = "gpu_temp >= 80"
+theme = "minimal_stats"
+release_s = 10
+
+[[triggers]]                 # F23: próximo tema ("@previous" também funciona)
+kind = "hotkey"
+key = "F23"
+theme = "@next"
+```
 
 Linha de comando: `--theme <nome>`, `--no-tray`, `--autostart on|off`, `--preview <tema> [saida.png]`, `--record <tema> <saida.gif> [s]`, `--list-themes`, `--verbose`.
 

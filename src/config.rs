@@ -37,6 +37,9 @@ pub struct Config {
     pub disk_mount: String,
     /// Backend de GPU: "auto" (D3DKMT, leve), "nvml" (+watts/fan%, ~19 MB) ou "pdh".
     pub gpu_backend: String,
+    /// Gatilhos que trocam o tema (processo, condição, atalho de teclado).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub triggers: Vec<crate::triggers::TriggerDef>,
     /// Inicia o serviço junto com o Windows (registro do usuário, sem admin).
     pub autostart: bool,
     /// Tela de inicialização exibida ao ligar (é um tema comum, editável no Studio).
@@ -74,6 +77,7 @@ impl Default for Config {
             disk_mount: "C:\\".into(),
             gpu_backend: "auto".into(),
             autostart: false,
+            triggers: Vec::new(),
             lyrics: true,
             music_mode: true,
             music_theme: "now_playing".into(),

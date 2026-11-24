@@ -2,6 +2,17 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
+## [0.5.0] — 2026-11-24
+
+### Adicionado
+- **Gatilhos de tema** (`[[triggers]]` no config e seção "Gatilhos" no Studio):
+  - **programa:** enquanto um executável está aberto, ou só em primeiro plano;
+  - **condição:** enquanto uma expressão é verdadeira, com `hold_s` e `release_s` para evitar trocas rápidas demais;
+  - **atalho global:** F13–F24, combinações com Ctrl/Alt/Shift/Win e as ações `@next`/`@previous`.
+- **Prioridade:** gatilhos de programa e de condição vencem o modo música, o de maior `priority` vence, e o display volta sozinho ao tema normal.
+- **Escolha manual:** um tema escolhido pela bandeja ou por atalho enquanto um gatilho vale é respeitado até o gatilho terminar.
+- Placeholder `{foreground_app}`, com o executável em primeiro plano.
+
 ## [0.4.0] — 2026-11-08
 
 ### Adicionado

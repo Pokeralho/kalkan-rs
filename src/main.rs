@@ -253,6 +253,7 @@ fn main() {
             orientation: renderer::canvas::Orientation { flip_x: cfg.flip_horizontal, flip_y: cfg.flip_vertical },
             splash: cfg.splash.then(|| (cfg.splash_path(), Duration::from_millis(cfg.splash_ms.clamp(300, 15000) as u64))),
             music: cfg.music_settings(),
+            triggers: cfg.triggers.clone(),
         };
         let (hub, frames) = (hub.clone(), frames.clone());
         std::thread::Builder::new()

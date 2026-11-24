@@ -403,7 +403,7 @@ sin(t * 3) * 0.5 + 0.5               oscilação
 
 **Texto:** usadas apenas em placeholders.
 
-`cpu_name`, `gpu_name`, `net_down`, `net_up`, `disk_read`, `disk_write` (com unidade automática), `media_title`, `media_artist`, `media_album`, `media_state`, `media_icon` (▶ / ❚❚ / ■), `media_position_str`, `media_duration_str`, `media_remaining_str` (`1:23`, `-2:05`), `lyrics_line`, `lyrics_prev`, `lyrics_next`, `weather_desc`.
+`cpu_name`, `gpu_name`, `net_down`, `net_up`, `disk_read`, `disk_write` (com unidade automática), `media_title`, `media_artist`, `media_album`, `media_state`, `media_icon` (▶ / ❚❚ / ■), `media_position_str`, `media_duration_str`, `media_remaining_str` (`1:23`, `-2:05`), `lyrics_line`, `lyrics_prev`, `lyrics_next`, `weather_desc`, `foreground_app` (executável em primeiro plano).
 
 **Com histórico** (aceitas pelo `sparkline`): `cpu_usage`, `cpu_temp`, `cpu_power`, `cpu_clock`, `gpu_usage`, `gpu_temp`, `gpu_power`, `ram_pct`, `net_down_kb`, `net_up_kb`, `disk_read_mb`, `disk_write_mb`.
 
